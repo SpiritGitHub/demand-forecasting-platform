@@ -10,6 +10,8 @@ RAW_DIR = DATA_DIR / "raw"
 EXTERNAL_DIR = DATA_DIR / "external"
 PROCESSED_DIR = DATA_DIR / "processed"
 FEATURES_DIR = DATA_DIR / "features"
+MODELS_DIR = BASE_DIR / "models"
+RESULTS_DIR = DATA_DIR / "results"
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",

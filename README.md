@@ -44,6 +44,9 @@ python -m src.data.enrichment
 
 # Run feature engineering
 python -m src.features.engineering
+
+# Run training + backtesting (requires MLflow running)
+python -m src.training.train
 ```
 
 ## Project Structure
@@ -55,8 +58,22 @@ python -m src.features.engineering
 │   │   ├── ingestion.py    # Kaggle download, cleaning, PostgreSQL insert
 │   │   ├── enrichment.py   # Weather, holidays, calendar features
 │   │   └── validation.py   # Pandera schemas, date continuity checks
-│   └── features/
-│       └── engineering.py  # Lags, rolling, promo, competition, interactions
+│   ├── features/
+│   │   └── engineering.py  # Lags, rolling, promo, competition, interactions
+│   ├── models/
+│   │   ├── base.py         # Abstract BaseForecaster interface
+│   │   ├── naive.py        # Seasonal Naive (baseline)
+│   │   ├── linear.py       # Ridge regression
+│   │   ├── random_forest.py
+│   │   ├── xgboost_model.py
+│   │   ├── lightgbm_model.py
+│   │   ├── prophet_model.py  # Prophet (aggregate + per-store scaling)
+│   │   └── lstm.py         # LSTM (PyTorch, per-store sequences)
+│   ├── evaluation/
+│   │   ├── metrics.py      # MAE, RMSE, WAPE, forecast bias
+│   │   └── backtesting.py  # Walk-forward temporal cross-validation
+│   └── training/
+│       └── train.py        # Full pipeline: 7 models + MLflow logging
 ├── notebooks/
 │   └── 01_exploration.ipynb  # EDA: distributions, STL, promo lift, outliers
 ├── api/                # FastAPI application (Phase 6)
@@ -99,6 +116,24 @@ The `src/features/engineering.py` module generates ~30 ML features per row:
 | Day profile | `store_dow_mean_sales`, `store_dow_ratio` |
 
 All lag/rolling features use `shift(1)` to prevent data leakage. Store aggregates accept a `train_end_date` parameter for safe backtesting.
+
+## Models & Backtesting
+
+7 models evaluated via **walk-forward temporal cross-validation** (3 folds, 14-day horizon):
+
+| Model | Type | Key Parameters |
+|-------|------|----------------|
+| Seasonal Naive | Baseline | Repeat last week |
+| Ridge | Linear | alpha=1.0 |
+| Random Forest | Ensemble | 200 trees, depth 15 |
+| XGBoost | Boosting | 300 rounds, lr=0.05 |
+| LightGBM | Boosting | 300 rounds, 63 leaves |
+| Prophet | Time series | Weekly + yearly seasonality |
+| LSTM | Deep learning | 2 layers, hidden=64, seq=14 |
+
+Metrics: **MAE**, **RMSE**, **WAPE** (Weighted Absolute Percentage Error), **Forecast Bias**.
+
+Results logged to MLflow and saved to `data/results/backtesting_results.csv`.
 
 ## Dataset
 

@@ -568,6 +568,17 @@ figcaption {
     <div class="sep"></div>
     <a href="#eda">Notebook EDA</a>
     <div class="sep"></div>
+    <a href="#models">Modelisation</a>
+    <a href="#model-base" class="indent">Interface commune</a>
+    <a href="#model-naive" class="indent">Seasonal Naive</a>
+    <a href="#model-tree" class="indent">RF / XGBoost / LightGBM</a>
+    <a href="#model-prophet" class="indent">Prophet</a>
+    <a href="#model-lstm" class="indent">LSTM</a>
+    <a href="#backtesting">Backtesting</a>
+    <a href="#bt-splitter" class="indent">WalkForwardSplitter</a>
+    <a href="#bt-metrics" class="indent">Metriques</a>
+    <a href="#bt-pipeline" class="indent">Pipeline train.py</a>
+    <div class="sep"></div>
     <a href="#quickstart">Demarrage rapide</a>
     <a href="#roadmap">Feuille de route</a>
   </nav>
@@ -579,7 +590,7 @@ figcaption {
 <!-- OVERVIEW -->
 <h1 id="overview">Demand Forecasting &amp; Replenishment Platform</h1>
 <p class="subtitle">
-  Documentation technique &mdash; Phases 1-2 : Setup, ingestion, enrichissement, validation et feature engineering.
+  Documentation technique &mdash; Phases 1-3 : Ingestion, enrichissement, feature engineering et modelisation.
   Plateforme de prevision de la demande et de recommandation de reapprovisionnement pour le retail.
 </p>
 
@@ -1940,6 +1951,344 @@ enriched_schema = <span class="fn">DataFrameSchema</span>(
 </div>
 
 
+<!-- MODELISATION (Phase 3) -->
+<h2 id="models">Modelisation &mdash; 7 modeles</h2>
+
+<p>
+  Le module <code>src/models/</code> implemente 7 modeles de prevision, tous conformes
+  a l'interface <code>BaseForecaster</code>. Cela permet au backtesting de les evaluer
+  de maniere uniforme.
+</p>
+
+<h3 id="model-base">Interface commune : BaseForecaster</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/models/base.py</div>
+  <pre><code><span class="kw">from</span> abc <span class="kw">import</span> ABC, abstractmethod
+
+<span class="kw">class</span> <span class="cls">BaseForecaster</span>(ABC):
+    name: <span class="bi">str</span> = <span class="str">"base"</span>
+
+    <span class="deco">@abstractmethod</span>
+    <span class="kw">def</span> <span class="fn">fit</span>(self, df_train, feature_cols, target_col):
+        ...
+
+    <span class="deco">@abstractmethod</span>
+    <span class="kw">def</span> <span class="fn">predict</span>(self, df_test, feature_cols):
+        ...
+
+    <span class="kw">def</span> <span class="fn">get_params</span>(self) -> <span class="bi">dict</span>:
+        <span class="kw">return</span> {}</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>Pourquoi passer le DataFrame complet plutot que X, y ?</strong>
+    Prophet a besoin de la colonne <code>date</code>, le LSTM a besoin de <code>store_id</code>
+    pour creer les sequences. En passant le DataFrame, chaque modele extrait ce dont il a besoin.
+    Les modeles tabulaires (Ridge, RF, XGBoost, LightGBM) utilisent simplement
+    <code>df[feature_cols]</code> et <code>df[target_col]</code>.
+  </p>
+</div>
+
+<h3 id="model-naive">Modele 1 : Seasonal Naive (baseline)</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/models/naive.py</div>
+  <pre><code><span class="kw">class</span> <span class="cls">SeasonalNaive</span>(BaseForecaster):
+    name = <span class="str">"seasonal_naive"</span>
+
+    <span class="kw">def</span> <span class="fn">fit</span>(self, df_train, feature_cols, target_col):
+        self.store_means_ = df_train.<span class="fn">groupby</span>(<span class="str">"store_id"</span>)[target_col].<span class="fn">mean</span>()
+        <span class="kw">return</span> self
+
+    <span class="kw">def</span> <span class="fn">predict</span>(self, df_test, feature_cols):
+        preds = df_test[<span class="str">"sales_lag_7"</span>].<span class="fn">copy</span>()           <span class="cm"># ventes de la semaine derniere</span>
+        mask = preds.<span class="fn">isna</span>()
+        preds[mask] = df_test.<span class="fn">loc</span>[mask, <span class="str">"store_id"</span>].<span class="fn">map</span>(self.store_means_)
+        <span class="kw">return</span> preds.<span class="fn">fillna</span>(self.store_means_.<span class="fn">mean</span>()).values</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>Le baseline le plus important.</strong> Tout modele qui ne bat pas le Seasonal Naive
+    est inutile &mdash; il suffit de repeter les ventes du meme jour de la semaine precedente.
+    Ce baseline est etonnamment competitif en retail grace a la forte saisonnalite hebdomadaire.
+    Si un lag n'est pas disponible, on utilise la moyenne du magasin comme fallback.
+  </p>
+</div>
+
+<h3 id="model-tree">Modeles 2-5 : Ridge, Random Forest, XGBoost, LightGBM</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/models/xgboost_model.py (representatif des 4 modeles tabulaires)</div>
+  <pre><code><span class="kw">class</span> <span class="cls">XGBoostForecaster</span>(BaseForecaster):
+    name = <span class="str">"xgboost"</span>
+
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, n_estimators=<span class="num">300</span>, max_depth=<span class="num">8</span>,
+                 learning_rate=<span class="num">0.05</span>, subsample=<span class="num">0.8</span>,
+                 colsample_bytree=<span class="num">0.8</span>):
+        ...
+
+    <span class="kw">def</span> <span class="fn">fit</span>(self, df_train, feature_cols, target_col):
+        X = df_train[feature_cols].<span class="fn">fillna</span>(<span class="num">0</span>).values
+        y = df_train[target_col].values
+        self.model_ = xgb.<span class="fn">XGBRegressor</span>(
+            n_estimators=self.n_estimators,
+            max_depth=self.max_depth,
+            learning_rate=self.learning_rate,
+            tree_method=<span class="str">"hist"</span>,
+        )
+        self.model_.<span class="fn">fit</span>(X, y)
+        <span class="kw">return</span> self
+
+    <span class="kw">def</span> <span class="fn">predict</span>(self, df_test, feature_cols):
+        X = df_test[feature_cols].<span class="fn">fillna</span>(<span class="num">0</span>).values
+        <span class="kw">return</span> self.model_.<span class="fn">predict</span>(X)</code></pre>
+</div>
+
+<div class="explain">
+  <p>Les 4 modeles tabulaires suivent le meme patron :</p>
+  <ul>
+    <li><strong>Ridge</strong> &mdash; Regression lineaire regularisee. Rapide, interpretable, sert de
+    baseline lineaire. Les features sont standardisees (<code>StandardScaler</code>).</li>
+    <li><strong>Random Forest</strong> &mdash; 200 arbres, profondeur max 15. Robuste aux outliers,
+    pas besoin de scaler les features.</li>
+    <li><strong>XGBoost</strong> &mdash; Gradient boosting, 300 rounds, <code>tree_method="hist"</code>
+    pour des performances optimales sur grands datasets.</li>
+    <li><strong>LightGBM</strong> &mdash; Gradient boosting par Microsoft. Plus rapide qu'XGBoost
+    grace au leaf-wise splitting. 63 feuilles max.</li>
+  </ul>
+  <p>
+    Les valeurs manquantes sont remplies par 0 (<code>fillna(0)</code>). Pour les modeles
+    a base d'arbres, la valeur exacte importe peu car l'arbre apprend le seuil optimal.
+  </p>
+</div>
+
+<h3 id="model-prophet">Modele 6 : Prophet</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/models/prophet_model.py</div>
+  <pre><code><span class="kw">class</span> <span class="cls">ProphetForecaster</span>(BaseForecaster):
+    name = <span class="str">"prophet"</span>
+
+    <span class="kw">def</span> <span class="fn">fit</span>(self, df_train, feature_cols, target_col):
+        <span class="cm"># Agreger les ventes par jour (moyenne de tous les magasins)</span>
+        daily = df_train.<span class="fn">groupby</span>(<span class="str">"date"</span>).<span class="fn">agg</span>(
+            y=(target_col, <span class="str">"mean"</span>), promo=(<span class="str">"promo"</span>, <span class="str">"mean"</span>)
+        ).<span class="fn">reset_index</span>().<span class="fn">rename</span>(columns={<span class="str">"date"</span>: <span class="str">"ds"</span>})
+
+        <span class="cm"># Multiplicateur par magasin pour distribuer les predictions</span>
+        global_mean = daily[<span class="str">"y"</span>].<span class="fn">mean</span>()
+        self.store_mult_ = df_train.<span class="fn">groupby</span>(<span class="str">"store_id"</span>)[target_col].<span class="fn">mean</span>() / global_mean
+
+        self.model_ = <span class="fn">Prophet</span>(yearly_seasonality=<span class="bi">True</span>, weekly_seasonality=<span class="bi">True</span>)
+        self.model_.<span class="fn">add_regressor</span>(<span class="str">"promo"</span>)
+        self.model_.<span class="fn">fit</span>(daily)
+
+    <span class="kw">def</span> <span class="fn">predict</span>(self, df_test, feature_cols):
+        <span class="cm"># Predire au niveau global, puis multiplier par le facteur du magasin</span>
+        forecast = self.model_.<span class="fn">predict</span>(...)
+        preds = forecast[<span class="str">"yhat"</span>] * df_test[<span class="str">"store_id"</span>].<span class="fn">map</span>(self.store_mult_)
+        <span class="kw">return</span> preds.<span class="fn">clip</span>(lower=<span class="num">0</span>).values</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>Strategie "aggregate + scale"</strong> &mdash; Fitter un Prophet par magasin (1115 modeles)
+    serait trop lent pour le backtesting. On fit un seul modele sur la moyenne des ventes
+    journalieres, puis on distribue les predictions a chaque magasin via un multiplicateur
+    <code>store_mult = ventes_moyennes_magasin / ventes_moyennes_globales</code>.
+  </p>
+  <p>
+    Prophet decompose automatiquement la serie en <strong>tendance + saisonnalite hebdomadaire
+    + saisonnalite annuelle + regresseurs</strong>. L'avantage : il gere nativement les jours feries
+    et les changements de tendance (changepoints). L'inconvenient : il n'utilise pas nos
+    features engineerees (lags, rolling).
+  </p>
+</div>
+
+<h3 id="model-lstm">Modele 7 : LSTM (PyTorch)</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/models/lstm.py &mdash; architecture du reseau</div>
+  <pre><code><span class="kw">class</span> <span class="cls">_LSTMNet</span>(nn.Module):
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, n_features, hidden_size, n_layers, dropout=<span class="num">0.2</span>):
+        <span class="bi">super</span>().<span class="fn">__init__</span>()
+        self.lstm = nn.<span class="fn">LSTM</span>(
+            input_size=n_features,
+            hidden_size=hidden_size,
+            num_layers=n_layers,
+            batch_first=<span class="bi">True</span>,
+            dropout=dropout <span class="kw">if</span> n_layers > <span class="num">1</span> <span class="kw">else</span> <span class="num">0.0</span>,
+        )
+        self.fc = nn.<span class="fn">Linear</span>(hidden_size, <span class="num">1</span>)
+
+    <span class="kw">def</span> <span class="fn">forward</span>(self, x):
+        out, _ = self.<span class="fn">lstm</span>(x)        <span class="cm"># (batch, seq_len, hidden)</span>
+        <span class="kw">return</span> self.<span class="fn">fc</span>(out[:, -<span class="num">1</span>, :])   <span class="cm"># dernier timestep → prediction</span></code></pre>
+</div>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/models/lstm.py &mdash; creation des sequences (fit)</div>
+  <pre><code><span class="kw">def</span> <span class="fn">fit</span>(self, df_train, feature_cols, target_col):
+    all_X, all_y = [], []
+    <span class="kw">for</span> _, group <span class="kw">in</span> df_train.<span class="fn">groupby</span>(<span class="str">"store_id"</span>):
+        group = group.<span class="fn">sort_values</span>(<span class="str">"date"</span>)
+        X_vals = group[feature_cols].<span class="fn">fillna</span>(<span class="num">0</span>).values
+        y_vals = group[target_col].values
+        <span class="cm"># Fenetre glissante de taille seq_len</span>
+        <span class="kw">for</span> t <span class="kw">in</span> <span class="bi">range</span>(self.seq_len, <span class="bi">len</span>(group)):
+            all_X.<span class="fn">append</span>(X_vals[t - self.seq_len : t])
+            all_y.<span class="fn">append</span>(y_vals[t])
+
+    <span class="cm"># Normaliser, entrainer avec Adam + MSE, early stopping implicite</span>
+    ...</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>Architecture LSTM a 2 couches</strong> &mdash; Le reseau prend en entree une sequence
+    de 14 jours de features (shape: <code>(batch, 14, n_features)</code>) et predit les ventes
+    du jour suivant. L'etat cache (<code>hidden_size=64</code>) capture les patterns temporels
+    que les features statiques ne captent pas.
+  </p>
+  <p>
+    <strong>Creation des sequences</strong> &mdash; Pour chaque magasin, on fait glisser une fenetre
+    de 14 jours sur l'historique. Chaque fenetre produit un exemple d'entrainement.
+    Le nombre total de sequences peut etre tres grand (~800K pour 1115 magasins),
+    donc on echantillonne a <code>max_train_samples=200K</code>.
+  </p>
+  <p>
+    <strong>Prediction</strong> &mdash; Pour les jours de test, on concatene les derniers jours
+    d'entrainement comme contexte. Chaque prediction utilise les 14 jours precedents
+    de features (qui peuvent inclure des jours d'entrainement pour les premiers jours de test).
+  </p>
+</div>
+
+
+<!-- BACKTESTING -->
+<h2 id="backtesting">Backtesting walk-forward</h2>
+
+<p>
+  Le backtesting temporel simule le deploiement reel : on entraine sur le passe
+  et on evalue sur le futur. Contrairement au split aleatoire (qui fuit de l'information
+  temporelle), le walk-forward respecte l'ordre chronologique.
+</p>
+
+<h3 id="bt-splitter">WalkForwardSplitter</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/evaluation/backtesting.py</div>
+  <pre><code><span class="kw">class</span> <span class="cls">WalkForwardSplitter</span>:
+    <span class="kw">def</span> <span class="fn">__init__</span>(self, n_splits=<span class="num">3</span>, test_horizon_days=<span class="num">14</span>, gap_days=<span class="num">1</span>):
+        ...
+
+    <span class="kw">def</span> <span class="fn">split</span>(self, df, date_col=<span class="str">"date"</span>):
+        max_date = dates.<span class="fn">max</span>()
+        total_test = self.n_splits * self.test_horizon_days
+        first_test_start = max_date - <span class="fn">timedelta</span>(days=total_test - <span class="num">1</span>)
+
+        <span class="kw">for</span> i <span class="kw">in</span> <span class="bi">range</span>(self.n_splits):
+            test_start = first_test_start + <span class="fn">timedelta</span>(days=i * self.test_horizon_days)
+            test_end = test_start + <span class="fn">timedelta</span>(days=self.test_horizon_days - <span class="num">1</span>)
+            train_end = test_start - <span class="fn">timedelta</span>(days=self.gap_days)
+
+            train_mask = dates &lt;= train_end
+            test_mask  = (dates >= test_start) &amp; (dates &lt;= test_end)
+            ...</code></pre>
+</div>
+
+<div class="explain">
+  <p><strong>Comment ca marche (3 folds, horizon 14 jours) :</strong></p>
+  <pre style="font-size:13px; color: var(--text-2); line-height:1.5; margin:8px 0;">
+  |============ TRAIN fold 0 ============|--TEST 0--|
+  |=============== TRAIN fold 1 ===============|--TEST 1--|
+  |=================== TRAIN fold 2 ==================|--TEST 2--|
+  </pre>
+  <p>
+    Le fold 0 a le moins de donnees d'entrainement, le fold 2 le plus.
+    Le <code>gap_days=1</code> simule le delai reel entre la derniere observation
+    et la premiere prediction (on ne connait pas les ventes "d'aujourd'hui" au moment
+    de predire).
+  </p>
+</div>
+
+<h3 id="bt-metrics">4 metriques d'evaluation</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/evaluation/metrics.py</div>
+  <pre><code><span class="kw">def</span> <span class="fn">mae</span>(y_true, y_pred):                           <span class="cm"># Erreur absolue moyenne</span>
+    <span class="kw">return</span> np.<span class="fn">mean</span>(np.<span class="fn">abs</span>(y_true - y_pred))
+
+<span class="kw">def</span> <span class="fn">rmse</span>(y_true, y_pred):                          <span class="cm"># Racine de l'erreur quadratique</span>
+    <span class="kw">return</span> np.<span class="fn">sqrt</span>(np.<span class="fn">mean</span>((y_true - y_pred) ** <span class="num">2</span>))
+
+<span class="kw">def</span> <span class="fn">wape</span>(y_true, y_pred):                          <span class="cm"># % d'erreur pondere</span>
+    <span class="kw">return</span> np.<span class="fn">sum</span>(np.<span class="fn">abs</span>(y_true - y_pred)) / np.<span class="fn">sum</span>(np.<span class="fn">abs</span>(y_true))
+
+<span class="kw">def</span> <span class="fn">forecast_bias</span>(y_true, y_pred):                 <span class="cm"># Biais directionnel</span>
+    <span class="kw">return</span> np.<span class="fn">mean</span>(y_pred - y_true) / np.<span class="fn">mean</span>(y_true)</code></pre>
+</div>
+
+<div class="explain">
+  <p><strong>Pourquoi 4 metriques et pas 1 ?</strong></p>
+  <ul>
+    <li><strong>MAE</strong> &mdash; Erreur moyenne en unite de ventes. Facile a interpreter
+    ("le modele se trompe en moyenne de X ventes").</li>
+    <li><strong>RMSE</strong> &mdash; Penalise davantage les grosses erreurs. Si RMSE &gt;&gt; MAE,
+    le modele a des erreurs tres variables (outliers).</li>
+    <li><strong>WAPE</strong> &mdash; Pourcentage d'erreur pondere par le volume. Preferable au MAPE
+    car il ne divise pas par zero et donne plus de poids aux gros magasins.</li>
+    <li><strong>Bias</strong> &mdash; Direction de l'erreur. Un biais positif = le modele surestime.
+    Un biais proche de 0 est ideal pour le reapprovisionnement (Phase 5).</li>
+  </ul>
+</div>
+
+<h3 id="bt-pipeline">Pipeline complet : train.py</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/training/train.py</div>
+  <pre><code><span class="kw">def</span> <span class="fn">main</span>():
+    df = pd.<span class="fn">read_parquet</span>(FEATURES_DIR / <span class="str">"rossmann_features.parquet"</span>)
+    df = df[(df[<span class="str">"open"</span>] == <span class="num">1</span>) &amp; (df[<span class="str">"sales"</span>] > <span class="num">0</span>)]    <span class="cm"># magasins ouverts uniquement</span>
+
+    models = [
+        <span class="fn">SeasonalNaive</span>(), <span class="fn">RidgeForecaster</span>(),
+        <span class="fn">RandomForestForecaster</span>(n_estimators=<span class="num">200</span>),
+        <span class="fn">XGBoostForecaster</span>(n_estimators=<span class="num">300</span>, learning_rate=<span class="num">0.05</span>),
+        <span class="fn">LightGBMForecaster</span>(n_estimators=<span class="num">300</span>, learning_rate=<span class="num">0.05</span>),
+        <span class="fn">ProphetForecaster</span>(),
+        <span class="fn">LSTMForecaster</span>(seq_len=<span class="num">14</span>, hidden_size=<span class="num">64</span>, epochs=<span class="num">20</span>),
+    ]
+
+    splitter = <span class="fn">WalkForwardSplitter</span>(n_splits=<span class="num">3</span>, test_horizon_days=<span class="num">14</span>)
+
+    mlflow.<span class="fn">set_experiment</span>(<span class="str">"demand-forecasting-phase3"</span>)
+    <span class="kw">with</span> mlflow.<span class="fn">start_run</span>(run_name=<span class="str">"walk-forward-backtesting"</span>):
+        results = <span class="fn">run_backtesting</span>(df, models, splitter, feature_cols, <span class="str">"sales"</span>)
+        <span class="cm"># Log des metriques moyennes par modele dans MLflow</span>
+        ...</code></pre>
+</div>
+
+<div class="explain">
+  <p>Execution :</p>
+  <pre><code>python -m src.training.train</code></pre>
+  <p>
+    Le pipeline filtre les magasins fermes (<code>open=0</code>) et les jours sans ventes
+    pour eviter de biaiser les metriques. Les resultats sont sauvegardes dans
+    <code>data/results/backtesting_results.csv</code> et logues dans MLflow
+    (accessible sur <code>localhost:5000</code>).
+  </p>
+  <p>
+    <strong>Sortie attendue :</strong> un tableau comparatif des 7 modeles sur les 4 metriques,
+    moyenne sur 3 folds. Les modeles gradient boosting (XGBoost/LightGBM) dominent generalement
+    sur les donnees tabulaires, mais le Seasonal Naive est souvent un baseline competitif
+    grace a la forte saisonnalite hebdomadaire du retail.
+  </p>
+</div>
+
+
 <!-- QUICKSTART -->
 <h2 id="quickstart">Demarrage rapide</h2>
 
@@ -1983,17 +2332,20 @@ python -m src.data.enrichment
 python -m src.data.validation
 
 <span class="cm"># 9. Generer les features ML</span>
-python -m src.features.engineering</code></pre>
+python -m src.features.engineering
+
+<span class="cm"># 10. Entrainer les 7 modeles + backtesting</span>
+python -m src.training.train</code></pre>
 </div>
 
 <div class="explain">
-  <p><strong>Apres ces 9 commandes :</strong></p>
+  <p><strong>Apres ces 10 commandes :</strong></p>
   <ul>
     <li>PostgreSQL tourne sur <code>localhost:5432</code> avec les donnees chargees</li>
     <li>pgAdmin est accessible sur <code>localhost:8080</code></li>
-    <li>MLflow est accessible sur <code>localhost:5000</code></li>
-    <li>Le fichier <code>data/processed/rossmann_enriched.parquet</code> contient le dataset enrichi</li>
-    <li>Le fichier <code>data/features/rossmann_features.parquet</code> contient ~30 features ML, pret pour la Phase 3 (modelisation)</li>
+    <li>MLflow est accessible sur <code>localhost:5000</code> avec les runs enregistres</li>
+    <li>Le fichier <code>data/features/rossmann_features.parquet</code> contient ~30 features ML</li>
+    <li>Le fichier <code>data/results/backtesting_results.csv</code> contient les metriques des 7 modeles sur 3 folds</li>
   </ul>
 </div>
 
@@ -2014,7 +2366,7 @@ python -m src.features.engineering</code></pre>
 <div class="roadmap-item">
   <span class="roadmap-phase">3</span>
   <span class="roadmap-title">7 modeles + backtesting temporel (walk-forward)</span>
-  <span class="phase-badge future">A venir</span>
+  <span class="phase-badge done">Termine</span>
 </div>
 <div class="roadmap-item">
   <span class="roadmap-phase">4</span>
