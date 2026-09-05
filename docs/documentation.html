@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Demand Forecasting Platform - Documentation</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+:root {
+  --bg: #F4F5F9;
+  --surface: #FFFFFF;
+  --text: #1D2028;
+  --text-2: #525868;
+  --text-3: #878D9E;
+  --accent: #1960CC;
+  --accent-text: #FFFFFF;
+  --accent-soft: #E6EFFA;
+  --code-bg: #EBEDF3;
+  --code-text: #1D2028;
+  --border: #CED1DA;
+  --sidebar-bg: #E9EBF1;
+  --tag-bg: #DFE2EA;
+  --phase-done: #16804A;
+  --phase-done-bg: #E3F5EC;
+  --phase-future: #878D9E;
+  --phase-future-bg: #ECEEF3;
+  --kw: #7C3AED;
+  --str: #047857;
+  --fn: #1960CC;
+  --cm: #878D9E;
+  --num: #B45309;
+  --built: #9333EA;
+  --op: #D97706;
+  --cls: #BE185D;
+  --deco: #6D28D9;
+  --file-header-bg: #E0E3EB;
+  --svg-node-fill: #E6EFFA;
+  --svg-node-stroke: #1960CC;
+  --svg-future-fill: #ECEEF3;
+  --svg-future-stroke: #B0B5C3;
+  --svg-ext-fill: #FEF3C7;
+  --svg-ext-stroke: #D97706;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #13151A;
+    --surface: #1B1D24;
+    --text: #D2D5DD;
+    --text-2: #9298A8;
+    --text-3: #686E80;
+    --accent: #5A99F0;
+    --accent-text: #0D1117;
+    --accent-soft: #172640;
+    --code-bg: #181A21;
+    --code-text: #D2D5DD;
+    --border: #2C2F38;
+    --sidebar-bg: #16181E;
+    --tag-bg: #282B34;
+    --phase-done: #34D399;
+    --phase-done-bg: #0F2922;
+    --phase-future: #686E80;
+    --phase-future-bg: #22242B;
+    --kw: #A78BFA;
+    --str: #34D399;
+    --fn: #5A99F0;
+    --cm: #686E80;
+    --num: #FBBF24;
+    --built: #C084FC;
+    --op: #FBBF24;
+    --cls: #F472B6;
+    --deco: #A78BFA;
+    --file-header-bg: #22242C;
+    --svg-node-fill: #172640;
+    --svg-node-stroke: #5A99F0;
+    --svg-future-fill: #22242B;
+    --svg-future-stroke: #4A4F5C;
+    --svg-ext-fill: #2D2410;
+    --svg-ext-stroke: #FBBF24;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #13151A;
+  --surface: #1B1D24;
+  --text: #D2D5DD;
+  --text-2: #9298A8;
+  --text-3: #686E80;
+  --accent: #5A99F0;
+  --accent-text: #0D1117;
+  --accent-soft: #172640;
+  --code-bg: #181A21;
+  --code-text: #D2D5DD;
+  --border: #2C2F38;
+  --sidebar-bg: #16181E;
+  --tag-bg: #282B34;
+  --phase-done: #34D399;
+  --phase-done-bg: #0F2922;
+  --phase-future: #686E80;
+  --phase-future-bg: #22242B;
+  --kw: #A78BFA;
+  --str: #34D399;
+  --fn: #5A99F0;
+  --cm: #686E80;
+  --num: #FBBF24;
+  --built: #C084FC;
+  --op: #FBBF24;
+  --cls: #F472B6;
+  --deco: #A78BFA;
+  --file-header-bg: #22242C;
+  --svg-node-fill: #172640;
+  --svg-node-stroke: #5A99F0;
+  --svg-future-fill: #22242B;
+  --svg-future-stroke: #4A4F5C;
+  --svg-ext-fill: #2D2410;
+  --svg-ext-stroke: #FBBF24;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  line-height: 1.7;
+  margin: 0;
+  font-size: 15px;
+}
+
+.layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* -- Sidebar -- */
+.sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  background: var(--sidebar-bg);
+  border-right: 1px solid var(--border);
+  padding: 28px 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.sidebar-title {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 0 24px;
+  margin: 0 0 16px;
+}
+.sidebar nav a {
+  display: block;
+  padding: 6px 24px;
+  color: var(--text-2);
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 400;
+  border-left: 3px solid transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.sidebar nav a:hover {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-left-color: var(--accent);
+}
+.sidebar nav a.indent {
+  padding-left: 40px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+.sidebar nav a.indent:hover { color: var(--accent); }
+.sidebar .sep {
+  height: 1px;
+  background: var(--border);
+  margin: 12px 24px;
+}
+
+/* -- Main -- */
+.main {
+  flex: 1;
+  min-width: 0;
+  padding: 48px 56px 80px;
+  max-width: 900px;
+}
+
+/* -- Typography -- */
+h1 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 32px;
+  line-height: 1.2;
+  margin: 0 0 12px;
+  color: var(--text);
+}
+.subtitle {
+  font-size: 17px;
+  color: var(--text-2);
+  margin: 0 0 24px;
+  line-height: 1.6;
+}
+h2 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  font-size: 22px;
+  margin: 56px 0 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--border);
+  color: var(--text);
+  text-wrap: balance;
+}
+h3 {
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  margin: 36px 0 12px;
+  color: var(--text);
+}
+h4 {
+  font-family: 'IBM Plex Mono', monospace;
+  font-weight: 500;
+  font-size: 14px;
+  margin: 28px 0 8px;
+  color: var(--accent);
+}
+p { margin: 0 0 14px; max-width: 68ch; }
+ul, ol { margin: 0 0 14px; padding-left: 24px; }
+li { margin-bottom: 4px; }
+strong { font-weight: 600; }
+
+/* -- Tags -- */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 32px;
+}
+.tag {
+  display: inline-block;
+  padding: 3px 10px;
+  background: var(--tag-bg);
+  border-radius: 4px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+.tag.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* -- Code blocks -- */
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 18px 20px;
+  overflow-x: auto;
+  margin: 0 0 16px;
+  font-size: 13px;
+  line-height: 1.65;
+  tab-size: 4;
+}
+pre code {
+  font-family: 'IBM Plex Mono', monospace;
+  color: var(--code-text);
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+code {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 0.88em;
+  background: var(--code-bg);
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: var(--accent);
+}
+
+/* -- Syntax highlighting (manual) -- */
+.kw { color: var(--kw); font-weight: 500; }
+.str { color: var(--str); }
+.fn { color: var(--fn); }
+.cm { color: var(--cm); font-style: italic; }
+.num { color: var(--num); }
+.bi { color: var(--built); }
+.op { color: var(--op); }
+.cls { color: var(--cls); }
+.deco { color: var(--deco); }
+
+/* -- File section -- */
+.file-block {
+  margin: 28px 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.file-block .file-path {
+  background: var(--file-header-bg);
+  padding: 8px 16px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.file-block .file-path .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+.file-block pre {
+  border: none;
+  border-radius: 0;
+  margin: 0;
+}
+
+/* -- Explanation callout -- */
+.explain {
+  background: var(--accent-soft);
+  border-left: 3px solid var(--accent);
+  padding: 14px 18px;
+  margin: 0 0 20px;
+  border-radius: 0 6px 6px 0;
+  font-size: 14px;
+  line-height: 1.65;
+}
+.explain p { margin: 0 0 8px; }
+.explain p:last-child { margin: 0; }
+.explain code { background: rgba(0,0,0,0.06); }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .explain code { background: rgba(255,255,255,0.08); }
+}
+:root[data-theme="dark"] .explain code { background: rgba(255,255,255,0.08); }
+
+/* -- Phase badge -- */
+.phase-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'IBM Plex Mono', monospace;
+}
+.phase-badge.done {
+  background: var(--phase-done-bg);
+  color: var(--phase-done);
+}
+.phase-badge.future {
+  background: var(--phase-future-bg);
+  color: var(--phase-future);
+}
+
+/* -- Table -- */
+.table-wrap {
+  overflow-x: auto;
+  margin: 0 0 20px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  padding: 8px 12px;
+  border-bottom: 2px solid var(--border);
+}
+td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+td code {
+  font-size: 12px;
+}
+
+/* -- SVG diagram -- */
+figure {
+  margin: 24px 0;
+}
+figure svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+figcaption {
+  font-size: 13px;
+  color: var(--text-3);
+  margin-top: 8px;
+  text-align: center;
+  font-style: italic;
+}
+
+/* -- Tree structure -- */
+.tree {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  background: var(--code-bg);
+  padding: 20px 24px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  margin: 0 0 20px;
+}
+.tree .dir { color: var(--accent); font-weight: 500; }
+.tree .file { color: var(--text-2); }
+.tree .desc { color: var(--text-3); font-family: 'IBM Plex Sans', sans-serif; font-size: 12px; }
+
+/* -- Roadmap -- */
+.roadmap-item {
+  display: flex;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  align-items: baseline;
+}
+.roadmap-item:last-child { border-bottom: none; }
+.roadmap-phase {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: right;
+  color: var(--text-3);
+}
+.roadmap-title { font-weight: 500; flex: 1; }
+
+/* -- Responsive -- */
+@media (max-width: 860px) {
+  .sidebar { display: none; }
+  .main { padding: 32px 20px 60px; }
+  h1 { font-size: 26px; }
+  h2 { font-size: 19px; }
+}
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- -- Sidebar Navigation -- -->
+<aside class="sidebar">
+  <p class="sidebar-title">Documentation</p>
+  <nav>
+    <a href="#overview">Vue d'ensemble</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#structure">Structure du projet</a>
+    <div class="sep"></div>
+    <a href="#infra">Infrastructure</a>
+    <a href="#docker" class="indent">Docker Compose</a>
+    <a href="#sql" class="indent">Schema SQL</a>
+    <a href="#env" class="indent">Variables d'env.</a>
+    <div class="sep"></div>
+    <a href="#config">Configuration</a>
+    <a href="#ingestion">Ingestion des donnees</a>
+    <a href="#download" class="indent">download_rossmann()</a>
+    <a href="#loadraw" class="indent">load_raw_data()</a>
+    <a href="#cleandata" class="indent">clean_data()</a>
+    <a href="#insertdb" class="indent">insert_stores/sales()</a>
+    <a href="#runpipeline" class="indent">run_ingestion()</a>
+    <div class="sep"></div>
+    <a href="#enrichment">Enrichissement</a>
+    <a href="#holidays" class="indent">add_holiday_features()</a>
+    <a href="#calendar" class="indent">add_calendar_features()</a>
+    <a href="#weather" class="indent">fetch_weather_data()</a>
+    <a href="#mergeweather" class="indent">enrich_with_weather()</a>
+    <div class="sep"></div>
+    <a href="#validation">Validation</a>
+    <a href="#schemas" class="indent">Schemas Pandera</a>
+    <a href="#continuity" class="indent">Continuite des dates</a>
+    <div class="sep"></div>
+    <a href="#quickstart">Demarrage rapide</a>
+    <a href="#roadmap">Feuille de route</a>
+  </nav>
+</aside>
+
+<!-- -- Main Content -- -->
+<main class="main">
+
+<!-- OVERVIEW -->
+<h1 id="overview">Demand Forecasting &amp; Replenishment Platform</h1>
+<p class="subtitle">
+  Documentation technique &mdash; Phase 1 : Setup, ingestion, enrichissement et validation des donnees.
+  Plateforme de prevision de la demande et de recommandation de reapprovisionnement pour le retail.
+</p>
+
+<div class="tags">
+  <span class="tag active">Python 3.11+</span>
+  <span class="tag active">PostgreSQL</span>
+  <span class="tag active">Pandera</span>
+  <span class="tag active">Docker</span>
+  <span class="tag active">MLflow</span>
+  <span class="tag">PyTorch</span>
+  <span class="tag">XGBoost</span>
+  <span class="tag">LightGBM</span>
+  <span class="tag">Prophet</span>
+  <span class="tag">FastAPI</span>
+  <span class="tag">Streamlit</span>
+  <span class="tag">Airflow</span>
+</div>
+
+<p>
+  Ce projet construit un systeme end-to-end capable de predire combien d'unites de chaque produit
+  seront vendues dans chaque magasin durant les <strong>7, 14 et 30 prochains jours</strong>,
+  puis de transformer ces previsions en <strong>recommandations de reapprovisionnement</strong>
+  actionables (quantite a commander, risque de rupture, urgence).
+</p>
+<p>
+  Les tags en surbrillance indiquent les technologies deja implementees dans la Phase 1.
+  Les tags gris correspondent aux phases futures.
+</p>
+
+
+<!-- ARCHITECTURE -->
+<h2 id="architecture">Architecture du pipeline</h2>
+
+<figure>
+  <svg viewBox="0 0 680 760" xmlns="http://www.w3.org/2000/svg" role="img"
+       aria-label="Pipeline d'architecture : les donnees Kaggle passent par l'ingestion, PostgreSQL, la validation, l'enrichissement avec meteo et jours feries, puis vers le feature engineering, l'entrainement des modeles, MLflow, FastAPI et le dashboard Streamlit. La Phase 1 couvre les 5 premieres etapes.">
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 7" refX="10" refY="3.5"
+              markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+        <polygon points="0 0, 10 3.5, 0 7" fill="var(--svg-node-stroke)"/>
+      </marker>
+      <marker id="arrow-muted" viewBox="0 0 10 7" refX="10" refY="3.5"
+              markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+        <polygon points="0 0, 10 3.5, 0 7" fill="var(--svg-future-stroke)"/>
+      </marker>
+      <marker id="arrow-ext" viewBox="0 0 10 7" refX="10" refY="3.5"
+              markerWidth="8" markerHeight="6" orient="auto-start-reverse">
+        <polygon points="0 0, 10 3.5, 0 7" fill="var(--svg-ext-stroke)"/>
+      </marker>
+    </defs>
+
+    <!-- Phase 1 label -->
+    <rect x="16" y="16" width="78" height="22" rx="4" fill="var(--svg-node-fill)" stroke="var(--svg-node-stroke)" stroke-width="1.5"/>
+    <text x="55" y="31" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="var(--svg-node-stroke)">Phase 1</text>
+
+    <!-- Row 1: Kaggle Dataset -->
+    <rect x="200" y="52" width="220" height="40" rx="6" fill="var(--svg-node-fill)" stroke="var(--svg-node-stroke)" stroke-width="1.5"/>
+    <text x="310" y="76" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="500" fill="currentColor">Dataset Kaggle Rossmann</text>
+
+    <!-- Arrow 1-2 -->
+    <line x1="310" y1="92" x2="310" y2="126" stroke="var(--svg-node-stroke)" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="322" y="114" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--text-3)">download</text>
+
+    <!-- Row 2: PostgreSQL -->
+    <rect x="200" y="130" width="220" height="40" rx="6" fill="var(--svg-node-fill)" stroke="var(--svg-node-stroke)" stroke-width="1.5"/>
+    <text x="310" y="154" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="500" fill="currentColor">PostgreSQL</text>
+
+    <!-- Arrow 2-3 -->
+    <line x1="310" y1="170" x2="310" y2="204" stroke="var(--svg-node-stroke)" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="322" y="192" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--text-3)">validate</text>
+
+    <!-- Row 3: Validation -->
+    <rect x="200" y="208" width="220" height="40" rx="6" fill="var(--svg-node-fill)" stroke="var(--svg-node-stroke)" stroke-width="1.5"/>
+    <text x="310" y="232" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="500" fill="currentColor">Validation Pandera</text>
+
+    <!-- Arrow 3-4 -->
+    <line x1="310" y1="248" x2="310" y2="282" stroke="var(--svg-node-stroke)" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <text x="322" y="270" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--text-3)">enrich</text>
+
+    <!-- Row 4: Enrichissement -->
+    <rect x="200" y="286" width="220" height="40" rx="6" fill="var(--svg-node-fill)" stroke="var(--svg-node-stroke)" stroke-width="1.5"/>
+    <text x="310" y="310" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="500" fill="currentColor">Enrichissement</text>
+
+    <!-- External: Open-Meteo -->
+    <rect x="500" y="270" width="150" height="30" rx="5" fill="var(--svg-ext-fill)" stroke="var(--svg-ext-stroke)" stroke-width="1.2"/>
+    <text x="575" y="289" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="500" fill="var(--svg-ext-stroke)">Open-Meteo API</text>
+    <line x1="500" y1="289" x2="424" y2="300" stroke="var(--svg-ext-stroke)" stroke-width="1.2" marker-end="url(#arrow-ext)"/>
+
+    <!-- External: holidays -->
+    <rect x="500" y="310" width="150" height="30" rx="5" fill="var(--svg-ext-fill)" stroke="var(--svg-ext-stroke)" stroke-width="1.2"/>
+    <text x="575" y="329" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="500" fill="var(--svg-ext-stroke)">holidays (lib)</text>
+    <line x1="500" y1="321" x2="424" y2="312" stroke="var(--svg-ext-stroke)" stroke-width="1.2" marker-end="url(#arrow-ext)"/>
+
+    <!-- Arrow 4-5 -->
+    <line x1="310" y1="326" x2="310" y2="360" stroke="var(--svg-node-stroke)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- Row 5: Processed Data -->
+    <rect x="200" y="364" width="220" height="40" rx="6" fill="var(--svg-node-fill)" stroke="var(--svg-node-stroke)" stroke-width="1.5"/>
+    <text x="310" y="388" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" font-weight="500" fill="currentColor">Donnees Traitees (.parquet)</text>
+
+    <!-- Phase 1 bracket -->
+    <line x1="180" y1="48" x2="180" y2="408" stroke="var(--svg-node-stroke)" stroke-width="1.5" stroke-dasharray="4,3"/>
+    <line x1="180" y1="48" x2="192" y2="48" stroke="var(--svg-node-stroke)" stroke-width="1.5"/>
+    <line x1="180" y1="408" x2="192" y2="408" stroke="var(--svg-node-stroke)" stroke-width="1.5"/>
+
+    <!-- Future phases (muted, dashed) -->
+
+    <!-- Arrow 5-6 -->
+    <line x1="310" y1="404" x2="310" y2="448" stroke="var(--svg-future-stroke)" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrow-muted)"/>
+
+    <!-- Row 6: Feature Engineering -->
+    <rect x="200" y="452" width="220" height="40" rx="6" fill="var(--svg-future-fill)" stroke="var(--svg-future-stroke)" stroke-width="1.5" stroke-dasharray="5,4"/>
+    <text x="310" y="476" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="var(--phase-future)">Feature Engineering</text>
+    <text x="430" y="476" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--phase-future)">Phase 2</text>
+
+    <!-- Arrow 6-7 -->
+    <line x1="310" y1="492" x2="310" y2="528" stroke="var(--svg-future-stroke)" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrow-muted)"/>
+
+    <!-- Row 7: Training -->
+    <rect x="140" y="532" width="340" height="68" rx="6" fill="var(--svg-future-fill)" stroke="var(--svg-future-stroke)" stroke-width="1.5" stroke-dasharray="5,4"/>
+    <text x="310" y="552" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="13" fill="var(--phase-future)">Entrainement (7 modeles)</text>
+    <text x="310" y="572" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--phase-future)">Naive | LightGBM | Prophet | LSTM | TFT</text>
+    <text x="310" y="590" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--phase-future)">Phase 3</text>
+
+    <!-- Arrow 7-8 -->
+    <line x1="310" y1="600" x2="310" y2="632" stroke="var(--svg-future-stroke)" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrow-muted)"/>
+
+    <!-- Row 8: MLflow + FastAPI -->
+    <rect x="165" y="636" width="130" height="36" rx="6" fill="var(--svg-future-fill)" stroke="var(--svg-future-stroke)" stroke-width="1.5" stroke-dasharray="5,4"/>
+    <text x="230" y="658" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="var(--phase-future)">MLflow Registry</text>
+
+    <line x1="295" y1="654" x2="320" y2="654" stroke="var(--svg-future-stroke)" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrow-muted)"/>
+
+    <rect x="328" y="636" width="130" height="36" rx="6" fill="var(--svg-future-fill)" stroke="var(--svg-future-stroke)" stroke-width="1.5" stroke-dasharray="5,4"/>
+    <text x="393" y="658" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="var(--phase-future)">FastAPI</text>
+
+    <!-- Arrow 8-9 -->
+    <line x1="393" y1="672" x2="393" y2="706" stroke="var(--svg-future-stroke)" stroke-width="1.5" stroke-dasharray="5,4" marker-end="url(#arrow-muted)"/>
+
+    <!-- Row 9: Dashboard -->
+    <rect x="328" y="710" width="130" height="36" rx="6" fill="var(--svg-future-fill)" stroke="var(--svg-future-stroke)" stroke-width="1.5" stroke-dasharray="5,4"/>
+    <text x="393" y="732" text-anchor="middle" font-family="IBM Plex Sans, sans-serif" font-size="12" fill="var(--phase-future)">Dashboard</text>
+    <text x="466" y="732" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--phase-future)">P.7</text>
+  </svg>
+  <figcaption>Pipeline complet &mdash; les elements en trait plein bleu sont implementes (Phase 1), les elements en pointilles sont a venir.</figcaption>
+</figure>
+
+
+<!-- STRUCTURE -->
+<h2 id="structure">Structure du projet</h2>
+
+<div class="tree"><span class="dir">demand-forecasting-platform/</span>
+├── <span class="file">.env.example</span>          <span class="desc"># Template des variables d'environnement</span>
+├── <span class="file">.gitignore</span>             <span class="desc"># Exclut data/, venv/, .env, mlruns/</span>
+├── <span class="file">docker-compose.yml</span>     <span class="desc"># PostgreSQL + pgAdmin + MLflow</span>
+├── <span class="file">requirements.txt</span>       <span class="desc"># Toutes les dependances Python</span>
+├── <span class="file">README.md</span>
+│
+├── <span class="dir">scripts/</span>
+│   └── <span class="file">init_db.sql</span>        <span class="desc"># Schema de creation des tables</span>
+│
+├── <span class="dir">data/</span>
+│   ├── <span class="dir">raw/</span>               <span class="desc"># CSV bruts + parquet nettoye</span>
+│   ├── <span class="dir">external/</span>          <span class="desc"># Meteo cache (parquet)</span>
+│   ├── <span class="dir">processed/</span>         <span class="desc"># Donnees enrichies</span>
+│   └── <span class="dir">features/</span>          <span class="desc"># Features pour le ML (Phase 2)</span>
+│
+├── <span class="dir">src/</span>
+│   ├── <span class="file">config.py</span>          <span class="desc"># Chemins, connexion DB, constantes</span>
+│   └── <span class="dir">data/</span>
+│       ├── <span class="file">ingestion.py</span>   <span class="desc"># Download Kaggle, nettoyage, insertion DB</span>
+│       ├── <span class="file">enrichment.py</span>  <span class="desc"># Meteo, jours feries, calendrier</span>
+│       └── <span class="file">validation.py</span>  <span class="desc"># Schemas Pandera, continuite des dates</span>
+│
+├── <span class="dir">api/</span>                   <span class="desc"># FastAPI (Phase 6)</span>
+├── <span class="dir">dashboard/</span>             <span class="desc"># Streamlit (Phase 7)</span>
+├── <span class="dir">airflow/dags/</span>          <span class="desc"># Orchestration (Phase 8)</span>
+├── <span class="dir">monitoring/</span>            <span class="desc"># Drift detection (Phase 8)</span>
+├── <span class="dir">notebooks/</span>             <span class="desc"># EDA et analyse (Phase 2)</span>
+└── <span class="dir">tests/</span>                 <span class="desc"># pytest (Phase 9)</span></div>
+
+<p>
+  Les dossiers <code>data/</code> sont exclus de Git via <code>.gitignore</code> car les fichiers de donnees
+  sont trop volumineux. Seuls des fichiers <code>.gitkeep</code> preservent la structure.
+</p>
+
+
+<!-- INFRASTRUCTURE -->
+<h2 id="infra">Infrastructure</h2>
+
+<!-- Docker Compose -->
+<h3 id="docker">Docker Compose</h3>
+
+<p>
+  Le fichier <code>docker-compose.yml</code> orchestre trois services qui forment l'infrastructure de base.
+  Un seul <code>docker-compose up -d</code> lance tout ce qu'il faut pour developper.
+</p>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> docker-compose.yml</div>
+  <pre><code><span class="kw">services:</span>
+  <span class="fn">db:</span>
+    <span class="kw">image:</span> <span class="str">postgres:15</span>
+    <span class="kw">environment:</span>
+      <span class="kw">POSTGRES_USER:</span>     <span class="str">${POSTGRES_USER:-forecast}</span>
+      <span class="kw">POSTGRES_PASSWORD:</span> <span class="str">${POSTGRES_PASSWORD:-forecast_secret}</span>
+      <span class="kw">POSTGRES_DB:</span>       <span class="str">${POSTGRES_DB:-demand_forecast}</span>
+    <span class="kw">ports:</span> [<span class="str">"5432:5432"</span>]
+    <span class="kw">volumes:</span>
+      - <span class="str">pgdata:/var/lib/postgresql/data</span>
+      - <span class="str">./scripts/init_db.sql:/docker-entrypoint-initdb.d/init.sql</span>
+    <span class="kw">healthcheck:</span>
+      <span class="kw">test:</span> [<span class="str">"CMD-SHELL"</span>, <span class="str">"pg_isready -U ${POSTGRES_USER:-forecast}"</span>]
+      <span class="kw">interval:</span> <span class="num">5s</span>
+      <span class="kw">timeout:</span>  <span class="num">5s</span>
+      <span class="kw">retries:</span> <span class="num">5</span>
+
+  <span class="fn">pgadmin:</span>
+    <span class="kw">image:</span> <span class="str">dpage/pgadmin4</span>
+    <span class="kw">environment:</span>
+      <span class="kw">PGADMIN_DEFAULT_EMAIL:</span>    <span class="str">admin@forecast.local</span>
+      <span class="kw">PGADMIN_DEFAULT_PASSWORD:</span> <span class="str">admin</span>
+    <span class="kw">ports:</span> [<span class="str">"8080:80"</span>]
+    <span class="kw">depends_on:</span>
+      <span class="fn">db:</span> { <span class="kw">condition:</span> <span class="str">service_healthy</span> }
+
+  <span class="fn">mlflow:</span>
+    <span class="kw">image:</span> <span class="str">ghcr.io/mlflow/mlflow:v2.9.2</span>
+    <span class="kw">command:</span> &gt;
+      mlflow server
+      --backend-store-uri postgresql://...@db:5432/demand_forecast
+      --default-artifact-root /mlflow/artifacts
+      --host 0.0.0.0 --port 5000
+    <span class="kw">ports:</span> [<span class="str">"5000:5000"</span>]
+    <span class="kw">volumes:</span> [<span class="str">mlflow_artifacts:/mlflow/artifacts</span>]
+    <span class="kw">depends_on:</span>
+      <span class="fn">db:</span> { <span class="kw">condition:</span> <span class="str">service_healthy</span> }
+
+<span class="kw">volumes:</span>
+  <span class="fn">pgdata:</span>
+  <span class="fn">mlflow_artifacts:</span></code></pre>
+</div>
+
+<div class="explain">
+  <p><strong>3 services :</strong></p>
+  <p>
+    <strong>db (PostgreSQL 15)</strong> &mdash; Base relationnelle qui stocke les ventes, les magasins, la meteo et les previsions.
+    Le fichier <code>init_db.sql</code> est monte dans <code>/docker-entrypoint-initdb.d/</code> :
+    Postgres l'execute automatiquement au premier demarrage du conteneur.
+    Le healthcheck avec <code>pg_isready</code> garantit que les services dependants ne demarrent
+    qu'une fois la base prete a accepter des connexions.
+  </p>
+  <p>
+    <strong>pgadmin</strong> &mdash; Interface web pour explorer les tables et executer des requetes SQL manuellement.
+    Accessible sur <code>localhost:8080</code>. Attend que la base soit healthy avant de demarrer.
+  </p>
+  <p>
+    <strong>mlflow</strong> &mdash; Serveur de tracking des experiences ML. Utilise PostgreSQL comme backend
+    (les metriques et parametres sont stockes en base, pas dans des fichiers locaux).
+    Les artefacts (modeles serialises) sont stockes dans un volume Docker dedie.
+    Accessible sur <code>localhost:5000</code>.
+  </p>
+  <p>
+    La syntaxe <code>${VAR:-default}</code> lit les valeurs du fichier <code>.env</code>
+    avec un fallback si la variable n'est pas definie.
+  </p>
+</div>
+
+<!-- Schema SQL -->
+<h3 id="sql">Schema SQL de la base de donnees</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> scripts/init_db.sql</div>
+  <pre><code><span class="kw">CREATE TABLE IF NOT EXISTS</span> <span class="fn">stores</span> (
+    store_id              <span class="bi">INTEGER PRIMARY KEY</span>,
+    store_type            <span class="bi">VARCHAR(10)</span>,
+    assortment            <span class="bi">VARCHAR(10)</span>,
+    competition_distance  <span class="bi">FLOAT</span>,
+    competition_open_since_month <span class="bi">INTEGER</span>,
+    competition_open_since_year  <span class="bi">INTEGER</span>,
+    promo2                <span class="bi">INTEGER</span>,
+    promo2_since_week     <span class="bi">INTEGER</span>,
+    promo2_since_year     <span class="bi">INTEGER</span>,
+    promo_interval        <span class="bi">VARCHAR(100)</span>
+);
+
+<span class="kw">CREATE TABLE IF NOT EXISTS</span> <span class="fn">sales</span> (
+    id             <span class="bi">SERIAL PRIMARY KEY</span>,
+    store_id       <span class="bi">INTEGER</span> <span class="kw">REFERENCES</span> stores(store_id),
+    date           <span class="bi">DATE NOT NULL</span>,
+    day_of_week    <span class="bi">INTEGER</span>,
+    sales          <span class="bi">INTEGER</span>,
+    customers      <span class="bi">INTEGER</span>,
+    is_open        <span class="bi">INTEGER</span>,
+    promo          <span class="bi">INTEGER</span>,
+    state_holiday  <span class="bi">VARCHAR(5)</span>,
+    school_holiday <span class="bi">INTEGER</span>
+);
+
+<span class="kw">CREATE TABLE IF NOT EXISTS</span> <span class="fn">weather</span> (
+    id               <span class="bi">SERIAL PRIMARY KEY</span>,
+    store_id         <span class="bi">INTEGER</span> <span class="kw">REFERENCES</span> stores(store_id),
+    date             <span class="bi">DATE NOT NULL</span>,
+    temperature_mean <span class="bi">FLOAT</span>,
+    temperature_max  <span class="bi">FLOAT</span>,
+    temperature_min  <span class="bi">FLOAT</span>,
+    precipitation    <span class="bi">FLOAT</span>,
+    wind_speed       <span class="bi">FLOAT</span>,
+    <span class="kw">UNIQUE</span>(store_id, date)
+);
+
+<span class="kw">CREATE TABLE IF NOT EXISTS</span> <span class="fn">forecasts</span> (
+    id               <span class="bi">SERIAL PRIMARY KEY</span>,
+    store_id         <span class="bi">INTEGER</span> <span class="kw">REFERENCES</span> stores(store_id),
+    forecast_date    <span class="bi">DATE NOT NULL</span>,
+    target_date      <span class="bi">DATE NOT NULL</span>,
+    horizon          <span class="bi">INTEGER</span>,
+    model_name       <span class="bi">VARCHAR(100)</span>,
+    predicted_sales  <span class="bi">FLOAT</span>,
+    confidence_low   <span class="bi">FLOAT</span>,
+    confidence_high  <span class="bi">FLOAT</span>,
+    created_at       <span class="bi">TIMESTAMP DEFAULT CURRENT_TIMESTAMP</span>
+);
+
+<span class="kw">CREATE INDEX</span> idx_sales_store_date     <span class="kw">ON</span> sales(store_id, date);
+<span class="kw">CREATE INDEX</span> idx_weather_store_date   <span class="kw">ON</span> weather(store_id, date);
+<span class="kw">CREATE INDEX</span> idx_forecasts_store_date <span class="kw">ON</span> forecasts(store_id, target_date);</code></pre>
+</div>
+
+<div class="explain">
+  <p><strong>4 tables :</strong></p>
+  <p>
+    <strong>stores</strong> &mdash; Metadata de chaque magasin : type (a/b/c/d), assortiment,
+    distance du concurrent le plus proche, participation aux promotions recurrentes (promo2).
+    C'est la table de reference, les autres la rejoignent via <code>store_id</code>.
+  </p>
+  <p>
+    <strong>sales</strong> &mdash; Historique quotidien : ventes, clients, etat d'ouverture,
+    promotion du jour, type de jour ferie. Cle etrangere vers <code>stores</code>.
+    L'index composite <code>(store_id, date)</code> accelere les requetes de series temporelles
+    par magasin &mdash; le pattern le plus frequent dans le forecasting.
+  </p>
+  <p>
+    <strong>weather</strong> &mdash; Meteo quotidienne par magasin. La contrainte <code>UNIQUE(store_id, date)</code>
+    evite les doublons lors des re-executions du pipeline d'enrichissement.
+  </p>
+  <p>
+    <strong>forecasts</strong> &mdash; Table de sortie pour stocker les previsions generees par les modeles.
+    <code>forecast_date</code> = quand la prevision a ete faite, <code>target_date</code> = le jour predit.
+    Cela permet de suivre la performance des previsions dans le temps (etaient-elles justes ?).
+  </p>
+</div>
+
+<!-- Variables d'environnement -->
+<h3 id="env">Variables d'environnement</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> .env.example</div>
+  <pre><code><span class="cm"># Database</span>
+POSTGRES_USER=<span class="str">forecast</span>
+POSTGRES_PASSWORD=<span class="str">forecast_secret</span>
+POSTGRES_DB=<span class="str">demand_forecast</span>
+POSTGRES_HOST=<span class="str">localhost</span>
+POSTGRES_PORT=<span class="num">5432</span>
+DATABASE_URL=<span class="str">postgresql://forecast:forecast_secret@localhost:5432/demand_forecast</span>
+
+<span class="cm"># MLflow</span>
+MLFLOW_TRACKING_URI=<span class="str">http://localhost:5000</span>
+
+<span class="cm"># API</span>
+API_HOST=<span class="str">0.0.0.0</span>
+API_PORT=<span class="num">8000</span>
+
+<span class="cm"># Kaggle (for dataset download)</span>
+KAGGLE_USERNAME=
+KAGGLE_KEY=</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    Le fichier <code>.env</code> (cree a partir de <code>.env.example</code>) est lu par
+    Docker Compose et par <code>python-dotenv</code> dans le code Python.
+    Il est exclu de Git via <code>.gitignore</code> pour ne jamais versionner les secrets.
+  </p>
+  <p>
+    Les credentials Kaggle sont necessaires pour telecharger le dataset automatiquement.
+    Ils s'obtiennent sur kaggle.com &gt; Account &gt; API &gt; Create New Token.
+  </p>
+</div>
+
+
+<!-- CONFIGURATION -->
+<h2 id="config">Configuration centralisee</h2>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/config.py</div>
+  <pre><code><span class="kw">import</span> os
+<span class="kw">from</span> pathlib <span class="kw">import</span> Path
+<span class="kw">from</span> dotenv <span class="kw">import</span> load_dotenv
+
+<span class="fn">load_dotenv</span>()
+
+<span class="cm"># Chemins absolus derives de la position de ce fichier</span>
+BASE_DIR     = Path(<span class="bi">__file__</span>).resolve().parent.parent
+DATA_DIR     = BASE_DIR / <span class="str">"data"</span>
+RAW_DIR      = DATA_DIR / <span class="str">"raw"</span>
+EXTERNAL_DIR = DATA_DIR / <span class="str">"external"</span>
+PROCESSED_DIR = DATA_DIR / <span class="str">"processed"</span>
+FEATURES_DIR = DATA_DIR / <span class="str">"features"</span>
+
+<span class="cm"># Connexion base de donnees</span>
+DATABASE_URL = os.<span class="fn">getenv</span>(
+    <span class="str">"DATABASE_URL"</span>,
+    <span class="str">"postgresql://forecast:forecast_secret@localhost:5432/demand_forecast"</span>,
+)
+
+<span class="cm"># MLflow</span>
+MLFLOW_TRACKING_URI = os.<span class="fn">getenv</span>(<span class="str">"MLFLOW_TRACKING_URI"</span>, <span class="str">"http://localhost:5000"</span>)
+
+<span class="cm"># Dataset</span>
+KAGGLE_DATASET = <span class="str">"rossmann-store-sales"</span>
+
+<span class="cm"># Horizons de prevision en jours</span>
+FORECAST_HORIZONS = [<span class="num">7</span>, <span class="num">14</span>, <span class="num">30</span>]</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>Point d'entree unique pour toute la configuration.</strong>
+    <code>load_dotenv()</code> charge le fichier <code>.env</code> a la racine du projet
+    dans <code>os.environ</code>, ce qui permet a tous les modules d'acceder aux secrets
+    sans les coder en dur.
+  </p>
+  <p>
+    Les chemins utilisent <code>pathlib.Path</code> (pas des strings) pour etre portables
+    entre Windows et Linux. <code>Path(__file__).resolve().parent.parent</code> remonte
+    de <code>src/config.py</code> a la racine du projet, quel que soit le repertoire de travail
+    de l'utilisateur au moment de l'execution.
+  </p>
+  <p>
+    <code>FORECAST_HORIZONS = [7, 14, 30]</code> definit les trois horizons de prevision.
+    Ce parametre sera utilise par les modeles et le backtesting pour generer des previsions
+    a court, moyen et long terme.
+  </p>
+</div>
+
+
+<!-- INGESTION -->
+<h2 id="ingestion">Pipeline d'ingestion des donnees</h2>
+
+<p>
+  Le module <code>src/data/ingestion.py</code> gere le flux complet : telecharger le dataset Rossmann
+  depuis Kaggle, nettoyer les donnees brutes, et les inserer dans PostgreSQL.
+  Il produit egalement un fichier Parquet pour le travail offline.
+</p>
+
+<h3 id="download">download_rossmann()</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/data/ingestion.py &mdash; lignes 16-42</div>
+  <pre><code><span class="kw">def</span> <span class="fn">download_rossmann</span>(output_dir: Path = RAW_DIR) -&gt; Path:
+    <span class="str">"""Download Rossmann Store Sales dataset from Kaggle."""</span>
+    output_dir.<span class="fn">mkdir</span>(parents=<span class="bi">True</span>, exist_ok=<span class="bi">True</span>)
+    zip_path = output_dir / <span class="str">"rossmann-store-sales.zip"</span>
+
+    <span class="cm"># Idempotence : si train.csv existe deja, on skip</span>
+    <span class="kw">if</span> (output_dir / <span class="str">"train.csv"</span>).<span class="fn">exists</span>():
+        logger.<span class="fn">info</span>(<span class="str">"Dataset already downloaded, skipping."</span>)
+        <span class="kw">return</span> output_dir
+
+    logger.<span class="fn">info</span>(<span class="str">"Downloading Rossmann dataset from Kaggle..."</span>)
+    subprocess.<span class="fn">run</span>(
+        [
+            <span class="str">"kaggle"</span>, <span class="str">"competitions"</span>, <span class="str">"download"</span>,
+            <span class="str">"-c"</span>, <span class="str">"rossmann-store-sales"</span>,
+            <span class="str">"-p"</span>, <span class="bi">str</span>(output_dir),
+        ],
+        check=<span class="bi">True</span>,
+    )
+
+    <span class="cm"># Extraction du ZIP puis suppression de l'archive</span>
+    <span class="kw">if</span> zip_path.<span class="fn">exists</span>():
+        logger.<span class="fn">info</span>(<span class="str">"Extracting archive..."</span>)
+        <span class="kw">with</span> zipfile.<span class="fn">ZipFile</span>(zip_path, <span class="str">"r"</span>) <span class="kw">as</span> zf:
+            zf.<span class="fn">extractall</span>(output_dir)
+        zip_path.<span class="fn">unlink</span>()
+
+    <span class="kw">return</span> output_dir</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>Idempotence</strong> : la verification <code>if train.csv exists</code> en debut de fonction
+    fait que re-executer le pipeline ne re-telecharge pas les donnees. C'est essentiel pour un pipeline
+    reproductible &mdash; on veut pouvoir relancer sans effets de bord.
+  </p>
+  <p>
+    Le telechargement utilise la CLI Kaggle (<code>subprocess.run</code> avec <code>check=True</code>
+    pour lever une exception si la commande echoue). Le ZIP est extrait en place puis supprime
+    pour ne garder que les CSV utiles (<code>train.csv</code>, <code>store.csv</code>, <code>test.csv</code>).
+  </p>
+</div>
+
+<h3 id="loadraw">load_raw_data()</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/data/ingestion.py &mdash; lignes 45-55</div>
+  <pre><code><span class="kw">def</span> <span class="fn">load_raw_data</span>(data_dir: Path = RAW_DIR) -&gt; <span class="bi">tuple</span>[pd.DataFrame, pd.DataFrame]:
+    <span class="str">"""Load raw CSV files into DataFrames."""</span>
+    train = pd.<span class="fn">read_csv</span>(
+        data_dir / <span class="str">"train.csv"</span>,
+        parse_dates=[<span class="str">"Date"</span>],          <span class="cm"># Convertir en datetime directement</span>
+        dtype={<span class="str">"StateHoliday"</span>: <span class="bi">str</span>},   <span class="cm"># Forcer en string (contient '0' et 'a')</span>
+        low_memory=<span class="bi">False</span>,
+    )
+    store = pd.<span class="fn">read_csv</span>(data_dir / <span class="str">"store.csv"</span>)
+    logger.<span class="fn">info</span>(<span class="str">"Loaded train: %s rows, store: %s rows"</span>, <span class="bi">len</span>(train), <span class="bi">len</span>(store))
+    <span class="kw">return</span> train, store</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>parse_dates=["Date"]</strong> &mdash; Pandas parse la colonne Date en <code>datetime64</code>
+    directement au chargement, ce qui evite de le faire apres et accelere les operations temporelles.
+  </p>
+  <p>
+    <strong>dtype={"StateHoliday": str}</strong> &mdash; Cette colonne contient a la fois
+    <code>"0"</code> (pas de ferie) et des lettres <code>"a"</code>, <code>"b"</code>, <code>"c"</code>
+    (types de jours feries). Sans cette indication, Pandas infere un type mixte et emet un avertissement.
+    Forcer le type <code>str</code> resout le probleme a la source.
+  </p>
+  <p>
+    <strong>Deux DataFrames retournes</strong> : <code>train</code> contient les ventes quotidiennes (~1M lignes)
+    et <code>store</code> contient les metadonnees des 1115 magasins. Ils seront fusionnes dans <code>clean_data()</code>.
+  </p>
+</div>
+
+<h3 id="cleandata">clean_data()</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/data/ingestion.py &mdash; lignes 58-82</div>
+  <pre><code><span class="kw">def</span> <span class="fn">clean_data</span>(train: pd.DataFrame, store: pd.DataFrame) -&gt; pd.DataFrame:
+    <span class="str">"""Merge and clean raw data."""</span>
+    <span class="cm"># 1. Jointure : enrichir chaque vente avec les infos du magasin</span>
+    df = train.<span class="fn">merge</span>(store, on=<span class="str">"Store"</span>, how=<span class="str">"left"</span>)
+
+    <span class="cm"># 2. Normalisation des noms de colonnes : CamelCase &rarr; snake_case</span>
+    df.columns = [c.<span class="fn">lower</span>() <span class="kw">for</span> c <span class="kw">in</span> df.columns]
+    df = df.<span class="fn">rename</span>(columns={
+        <span class="str">"store"</span>: <span class="str">"store_id"</span>,
+        <span class="str">"dayofweek"</span>: <span class="str">"day_of_week"</span>,
+        <span class="str">"stateholiday"</span>: <span class="str">"state_holiday"</span>,
+        <span class="str">"schoolholiday"</span>: <span class="str">"school_holiday"</span>,
+        <span class="str">"competitiondistance"</span>: <span class="str">"competition_distance"</span>,
+        <span class="str">"competitionopensincemonth"</span>: <span class="str">"competition_open_since_month"</span>,
+        <span class="str">"competitionopensinceyear"</span>: <span class="str">"competition_open_since_year"</span>,
+        <span class="str">"storetype"</span>: <span class="str">"store_type"</span>,
+        <span class="str">"promo2sinceweek"</span>: <span class="str">"promo2_since_week"</span>,
+        <span class="str">"promo2sinceyear"</span>: <span class="str">"promo2_since_year"</span>,
+        <span class="str">"promointerval"</span>: <span class="str">"promo_interval"</span>,
+    })
+
+    <span class="cm"># 3. Filtrage : ne garder que les jours ouverts avec des ventes</span>
+    df = df[df[<span class="str">"is_open"</span>] == <span class="num">1</span>].<span class="fn">copy</span>()
+    df = df[df[<span class="str">"sales"</span>] &gt; <span class="num">0</span>].<span class="fn">copy</span>()
+
+    <span class="cm"># 4. Tri chronologique par magasin</span>
+    df = df.<span class="fn">sort_values</span>([<span class="str">"store_id"</span>, <span class="str">"date"</span>]).<span class="fn">reset_index</span>(drop=<span class="bi">True</span>)
+
+    <span class="kw">return</span> df</code></pre>
+</div>
+
+<div class="explain">
+  <p><strong>4 etapes de nettoyage :</strong></p>
+  <p>
+    <strong>1. Jointure LEFT</strong> &mdash; Chaque ligne de vente recoit les colonnes du magasin
+    correspondant. <code>how="left"</code> conserve toutes les ventes meme si un magasin manquait
+    dans <code>store.csv</code> (securite).
+  </p>
+  <p>
+    <strong>2. Renommage snake_case</strong> &mdash; Convention Python standard. Les noms originaux
+    Kaggle (<code>DayOfWeek</code>, <code>CompetitionDistance</code>) deviennent <code>day_of_week</code>,
+    <code>competition_distance</code>. Cela aligne aussi les noms avec les colonnes PostgreSQL.
+  </p>
+  <p>
+    <strong>3. Filtrage</strong> &mdash; On exclut les jours ou le magasin etait ferme (<code>is_open == 0</code>)
+    et les ventes nulles. Un magasin ferme a 0 ventes par definition, pas par manque de demande.
+    Garder ces lignes fausserait les modeles en leur apprenant que certains jours ont naturellement
+    0 ventes.
+  </p>
+  <p>
+    <strong>4. Tri</strong> &mdash; L'ordre <code>(store_id, date)</code> est indispensable pour
+    les operations de series temporelles (lags, rolling means). <code>.copy()</code> evite
+    les <code>SettingWithCopyWarning</code> de Pandas.
+  </p>
+</div>
+
+<h3 id="insertdb">insert_stores() et insert_sales()</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/data/ingestion.py &mdash; lignes 85-118</div>
+  <pre><code><span class="kw">def</span> <span class="fn">insert_stores</span>(store: pd.DataFrame, engine) -&gt; <span class="bi">None</span>:
+    <span class="str">"""Insert store data into PostgreSQL."""</span>
+    store_clean = store.<span class="fn">copy</span>()
+    store_clean.columns = [c.<span class="fn">lower</span>() <span class="kw">for</span> c <span class="kw">in</span> store_clean.columns]
+    store_clean = store_clean.<span class="fn">rename</span>(columns={...})  <span class="cm"># meme mapping que clean_data</span>
+
+    cols = [
+        <span class="str">"store_id"</span>, <span class="str">"store_type"</span>, <span class="str">"assortment"</span>, <span class="str">"competition_distance"</span>,
+        <span class="str">"competition_open_since_month"</span>, <span class="str">"competition_open_since_year"</span>,
+        <span class="str">"promo2"</span>, <span class="str">"promo2_since_week"</span>, <span class="str">"promo2_since_year"</span>, <span class="str">"promo_interval"</span>,
+    ]
+    store_clean = store_clean[cols]
+    store_clean.<span class="fn">to_sql</span>(<span class="str">"stores"</span>, engine, if_exists=<span class="str">"replace"</span>, index=<span class="bi">False</span>)
+
+
+<span class="kw">def</span> <span class="fn">insert_sales</span>(df: pd.DataFrame, engine) -&gt; <span class="bi">None</span>:
+    <span class="str">"""Insert sales data into PostgreSQL."""</span>
+    cols = [
+        <span class="str">"store_id"</span>, <span class="str">"date"</span>, <span class="str">"day_of_week"</span>, <span class="str">"sales"</span>, <span class="str">"customers"</span>,
+        <span class="str">"is_open"</span>, <span class="str">"promo"</span>, <span class="str">"state_holiday"</span>, <span class="str">"school_holiday"</span>,
+    ]
+    sales_df = df[cols].<span class="fn">copy</span>()
+    sales_df.<span class="fn">to_sql</span>(<span class="str">"sales"</span>, engine, if_exists=<span class="str">"replace"</span>, index=<span class="bi">False</span>)</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>to_sql()</strong> de Pandas ecrit un DataFrame entier dans une table PostgreSQL.
+    <code>if_exists="replace"</code> supprime et recree la table a chaque execution &mdash;
+    c'est voulu pour la phase de developpement (pipeline idempotent).
+    En production, on utiliserait <code>"append"</code> avec une logique d'upsert.
+  </p>
+  <p>
+    La selection explicite des colonnes (<code>cols = [...]</code>) garantit qu'on n'insere que
+    les colonnes attendues par le schema SQL, dans le bon ordre. C'est aussi une forme de documentation :
+    on voit exactement ce qui entre dans chaque table.
+  </p>
+</div>
+
+<h3 id="runpipeline">run_ingestion() &mdash; Le pipeline complet</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/data/ingestion.py &mdash; lignes 121-146</div>
+  <pre><code><span class="kw">def</span> <span class="fn">run_ingestion</span>() -&gt; pd.DataFrame:
+    <span class="str">"""Full ingestion pipeline: download, clean, insert into DB."""</span>
+    <span class="cm"># Etape 1 : telecharger si necessaire</span>
+    <span class="fn">download_rossmann</span>()
+
+    <span class="cm"># Etape 2 : charger les CSV en memoire</span>
+    train, store = <span class="fn">load_raw_data</span>()
+
+    <span class="cm"># Etape 3 : nettoyer et fusionner</span>
+    df = <span class="fn">clean_data</span>(train, store)
+
+    <span class="cm"># Etape 4 : preparer la base (drop cascade puis recreer)</span>
+    engine = <span class="fn">create_engine</span>(DATABASE_URL)
+    <span class="kw">with</span> engine.<span class="fn">begin</span>() <span class="kw">as</span> conn:
+        conn.<span class="fn">execute</span>(<span class="fn">text</span>(<span class="str">"DROP TABLE IF EXISTS forecasts"</span>))
+        conn.<span class="fn">execute</span>(<span class="fn">text</span>(<span class="str">"DROP TABLE IF EXISTS weather"</span>))
+        conn.<span class="fn">execute</span>(<span class="fn">text</span>(<span class="str">"DROP TABLE IF EXISTS sales"</span>))
+        conn.<span class="fn">execute</span>(<span class="fn">text</span>(<span class="str">"DROP TABLE IF EXISTS stores"</span>))
+
+    <span class="cm"># Etape 5 : inserer dans PostgreSQL</span>
+    <span class="fn">insert_stores</span>(store, engine)
+    <span class="fn">insert_sales</span>(df, engine)
+
+    <span class="cm"># Etape 6 : sauvegarder en Parquet pour usage offline</span>
+    df.<span class="fn">to_parquet</span>(RAW_DIR / <span class="str">"rossmann_clean.parquet"</span>, index=<span class="bi">False</span>)
+
+    <span class="kw">return</span> df
+
+
+<span class="kw">if</span> <span class="bi">__name__</span> == <span class="str">"__main__"</span>:
+    logging.<span class="fn">basicConfig</span>(level=logging.INFO)
+    <span class="fn">run_ingestion</span>()</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>Orchestration en 6 etapes</strong> : telecharger, charger, nettoyer, preparer la base, inserer, sauvegarder.
+  </p>
+  <p>
+    Les <code>DROP TABLE</code> sont executes dans l'ordre inverse des dependances
+    (foreign keys) : <code>forecasts</code> et <code>weather</code> referencent <code>sales</code>
+    et <code>stores</code>, donc ils doivent etre supprimes en premier. C'est un pattern
+    classique pour les pipelines de reinitialisation.
+  </p>
+  <p>
+    <strong>Double sortie</strong> : les donnees vont a la fois dans PostgreSQL (pour les requetes
+    et le dashboard) et dans un fichier Parquet (pour le travail en notebook et le feature engineering).
+    Parquet est un format colonnaire binaire, beaucoup plus rapide a lire que CSV (~10x) et plus compact.
+  </p>
+  <p>
+    Le bloc <code>if __name__ == "__main__"</code> permet d'executer le pipeline directement :
+  </p>
+  <pre><code>python -m src.data.ingestion</code></pre>
+</div>
+
+
+<!-- ENRICHISSEMENT -->
+<h2 id="enrichment">Enrichissement des donnees</h2>
+
+<p>
+  Le module <code>src/data/enrichment.py</code> ajoute des variables externes qui capturent
+  des facteurs influencant les ventes mais absents du dataset Rossmann : les jours feries nationaux,
+  les patterns calendaires, et la meteo.
+</p>
+
+<h3 id="holidays">add_holiday_features()</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/data/enrichment.py &mdash; lignes 31-57</div>
+  <pre><code><span class="kw">def</span> <span class="fn">add_holiday_features</span>(df: pd.DataFrame) -&gt; pd.DataFrame:
+    <span class="str">"""Add German holiday flags and distance to nearest holiday."""</span>
+    <span class="cm"># Generer tous les jours feries allemands pour la periode</span>
+    years = <span class="bi">range</span>(df[<span class="str">"date"</span>].dt.year.<span class="fn">min</span>(), df[<span class="str">"date"</span>].dt.year.<span class="fn">max</span>() + <span class="num">1</span>)
+    de_holidays = holidays.<span class="fn">Germany</span>(years=years)
+
+    holiday_dates = <span class="bi">sorted</span>(de_holidays.<span class="fn">keys</span>())
+
+    <span class="cm"># Feature binaire : est-ce un jour ferie ?</span>
+    df[<span class="str">"is_holiday"</span>] = df[<span class="str">"date"</span>].dt.date.<span class="fn">isin</span>(de_holidays).<span class="fn">astype</span>(<span class="bi">int</span>)
+
+    <span class="cm"># Nom du jour ferie (vide si ce n'en est pas un)</span>
+    df[<span class="str">"holiday_name"</span>] = df[<span class="str">"date"</span>].dt.date.<span class="fn">map</span>(
+        <span class="kw">lambda</span> d: de_holidays.<span class="fn">get</span>(d, <span class="str">""</span>)
+    )
+
+    <span class="cm"># Distance en jours au jour ferie le plus proche</span>
+    holiday_series = pd.<span class="fn">Series</span>(holiday_dates)
+
+    <span class="kw">def</span> <span class="fn">days_to_nearest_holiday</span>(d: date) -&gt; <span class="bi">int</span>:
+        idx = holiday_series.<span class="fn">searchsorted</span>(d)
+        candidates = []
+        <span class="kw">if</span> idx &lt; <span class="bi">len</span>(holiday_series):
+            candidates.<span class="fn">append</span>(<span class="bi">abs</span>((holiday_series.iloc[idx] - d).days))
+        <span class="kw">if</span> idx &gt; <span class="num">0</span>:
+            candidates.<span class="fn">append</span>(<span class="bi">abs</span>((d - holiday_series.iloc[idx - <span class="num">1</span>]).days))
+        <span class="kw">return</span> <span class="bi">min</span>(candidates) <span class="kw">if</span> candidates <span class="kw">else</span> <span class="num">999</span>
+
+    df[<span class="str">"days_to_holiday"</span>] = df[<span class="str">"date"</span>].dt.date.<span class="fn">map</span>(days_to_nearest_holiday)
+
+    <span class="kw">return</span> df</code></pre>
+</div>
+
+<div class="explain">
+  <p><strong>3 features generees :</strong></p>
+  <p>
+    <strong>is_holiday</strong> (0/1) &mdash; Indique si le jour est un jour ferie allemand.
+    La librairie <code>holidays</code> connait tous les jours feries nationaux et regionaux.
+  </p>
+  <p>
+    <strong>holiday_name</strong> &mdash; Le nom du jour ferie (par ex. "Weihnachten" pour Noel).
+    Utile pour l'analyse exploratoire ; pas directement utilisable comme feature numerique.
+  </p>
+  <p>
+    <strong>days_to_holiday</strong> &mdash; Nombre de jours jusqu'au ferie le plus proche (avant ou apres).
+    C'est la feature la plus interessante pour le ML : les ventes augmentent
+    souvent dans les jours <em>precedant</em> un ferie (effet d'anticipation des achats).
+    L'algorithme utilise <code>searchsorted</code> (recherche binaire O(log n)) pour trouver
+    efficacement le ferie le plus proche dans la liste triee.
+  </p>
+</div>
+
+<h3 id="calendar">add_calendar_features()</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/data/enrichment.py &mdash; lignes 60-73</div>
+  <pre><code><span class="kw">def</span> <span class="fn">add_calendar_features</span>(df: pd.DataFrame) -&gt; pd.DataFrame:
+    <span class="str">"""Add calendar-based features."""</span>
+    dt = df[<span class="str">"date"</span>].dt
+
+    df[<span class="str">"month"</span>]          = dt.month
+    df[<span class="str">"week_of_year"</span>]   = dt.<span class="fn">isocalendar</span>().week.<span class="fn">astype</span>(<span class="bi">int</span>)
+    df[<span class="str">"quarter"</span>]        = dt.quarter
+    df[<span class="str">"year"</span>]           = dt.year
+    df[<span class="str">"is_weekend"</span>]     = (dt.dayofweek &gt;= <span class="num">5</span>).<span class="fn">astype</span>(<span class="bi">int</span>)
+    df[<span class="str">"is_month_start"</span>] = dt.is_month_start.<span class="fn">astype</span>(<span class="bi">int</span>)
+    df[<span class="str">"is_month_end"</span>]   = dt.is_month_end.<span class="fn">astype</span>(<span class="bi">int</span>)
+    df[<span class="str">"day_of_month"</span>]   = dt.day
+
+    <span class="kw">return</span> df</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>8 features calendaires extraites de la colonne date.</strong>
+    Chacune capture un cycle temporel different qui influence les ventes :
+  </p>
+  <p>
+    <strong>month</strong> (1-12) &mdash; Saisonnalite annuelle. Decembre a un profil de ventes
+    tres different de fevrier.
+  </p>
+  <p>
+    <strong>week_of_year</strong> (1-53) &mdash; Plus granulaire que le mois.
+    <code>dt.isocalendar().week</code> utilise le standard ISO 8601 (semaine 1 = celle contenant le premier jeudi).
+  </p>
+  <p>
+    <strong>is_weekend</strong> (0/1) &mdash; Les patterns d'achat du samedi/dimanche different
+    radicalement des jours de semaine. <code>dayofweek &gt;= 5</code> correspond a samedi (5) et dimanche (6).
+  </p>
+  <p>
+    <strong>is_month_start / is_month_end</strong> &mdash; Effet de paie : les ventes augmentent
+    souvent en debut de mois (salaires verses) et en fin de mois (achats de derniere minute).
+  </p>
+  <p>
+    L'accesseur <code>.dt</code> de Pandas permet d'extraire ces attributs vectoriellement
+    sur toute la colonne sans boucle Python &mdash; beaucoup plus rapide.
+  </p>
+</div>
+
+<h3 id="weather">fetch_weather_data()</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/data/enrichment.py &mdash; lignes 76-116</div>
+  <pre><code><span class="kw">def</span> <span class="fn">fetch_weather_data</span>(
+    latitude: <span class="bi">float</span> = <span class="num">51.5</span>,
+    longitude: <span class="bi">float</span> = <span class="num">10.5</span>,
+    start_date: <span class="bi">str</span> = <span class="str">"2013-01-01"</span>,
+    end_date: <span class="bi">str</span> = <span class="str">"2015-07-31"</span>,
+) -&gt; pd.DataFrame:
+    <span class="str">"""Fetch historical weather from Open-Meteo API (free, no key)."""</span>
+    EXTERNAL_DIR.<span class="fn">mkdir</span>(parents=<span class="bi">True</span>, exist_ok=<span class="bi">True</span>)
+    cache_path = EXTERNAL_DIR / <span class="str">"weather_germany.parquet"</span>
+
+    <span class="cm"># Cache local pour eviter de rappeler l'API</span>
+    <span class="kw">if</span> cache_path.<span class="fn">exists</span>():
+        <span class="kw">return</span> pd.<span class="fn">read_parquet</span>(cache_path)
+
+    url = <span class="str">"https://archive-api.open-meteo.com/v1/archive"</span>
+    params = {
+        <span class="str">"latitude"</span>: latitude,
+        <span class="str">"longitude"</span>: longitude,
+        <span class="str">"start_date"</span>: start_date,
+        <span class="str">"end_date"</span>: end_date,
+        <span class="str">"daily"</span>: <span class="str">"temperature_2m_mean,temperature_2m_max,"</span>
+                 <span class="str">"temperature_2m_min,precipitation_sum,"</span>
+                 <span class="str">"wind_speed_10m_max"</span>,
+        <span class="str">"timezone"</span>: <span class="str">"Europe/Berlin"</span>,
+    }
+
+    resp = requests.<span class="fn">get</span>(url, params=params, timeout=<span class="num">30</span>)
+    resp.<span class="fn">raise_for_status</span>()
+    data = resp.<span class="fn">json</span>()
+
+    weather = pd.<span class="fn">DataFrame</span>({
+        <span class="str">"date"</span>:             pd.<span class="fn">to_datetime</span>(data[<span class="str">"daily"</span>][<span class="str">"time"</span>]),
+        <span class="str">"temperature_mean"</span>: data[<span class="str">"daily"</span>][<span class="str">"temperature_2m_mean"</span>],
+        <span class="str">"temperature_max"</span>:  data[<span class="str">"daily"</span>][<span class="str">"temperature_2m_max"</span>],
+        <span class="str">"temperature_min"</span>:  data[<span class="str">"daily"</span>][<span class="str">"temperature_2m_min"</span>],
+        <span class="str">"precipitation"</span>:    data[<span class="str">"daily"</span>][<span class="str">"precipitation_sum"</span>],
+        <span class="str">"wind_speed"</span>:       data[<span class="str">"daily"</span>][<span class="str">"wind_speed_10m_max"</span>],
+    })
+
+    <span class="cm"># Sauvegarder en cache</span>
+    weather.<span class="fn">to_parquet</span>(cache_path, index=<span class="bi">False</span>)
+    <span class="kw">return</span> weather</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>Open-Meteo Archive API</strong> &mdash; API gratuite, sans cle, qui fournit la meteo historique
+    pour n'importe quelle coordonnee GPS. Les coordonnees par defaut (51.5, 10.5) correspondent
+    au centre geographique de l'Allemagne.
+  </p>
+  <p>
+    <strong>5 variables meteo</strong> : temperature moyenne/max/min, precipitations cumulees,
+    vitesse max du vent. Ce sont les facteurs meteo les plus correles au trafic en magasin
+    (les gens sortent moins quand il pleut ou fait tres froid).
+  </p>
+  <p>
+    <strong>Cache Parquet</strong> &mdash; Apres le premier appel API, les donnees sont sauvegardees
+    localement. Les executions suivantes lisent le cache sans toucher au reseau.
+    C'est important pour la reproductibilite et pour ne pas surcharger une API gratuite.
+  </p>
+  <p>
+    <strong>Limitation connue</strong> : un seul point GPS pour toute l'Allemagne.
+    En production, on utiliserait les coordonnees de chaque magasin pour une meteo localisee.
+    Pour un projet portfolio, la meteo nationale suffit a capturer les grandes tendances.
+  </p>
+</div>
+
+<h3 id="mergeweather">enrich_with_weather() et run_enrichment()</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/data/enrichment.py &mdash; lignes 119-147</div>
+  <pre><code><span class="kw">def</span> <span class="fn">enrich_with_weather</span>(df: pd.DataFrame) -&gt; pd.DataFrame:
+    <span class="str">"""Merge weather data into the sales DataFrame."""</span>
+    start = df[<span class="str">"date"</span>].<span class="fn">min</span>().<span class="fn">strftime</span>(<span class="str">"%Y-%m-%d"</span>)
+    end   = df[<span class="str">"date"</span>].<span class="fn">max</span>().<span class="fn">strftime</span>(<span class="str">"%Y-%m-%d"</span>)
+
+    weather = <span class="fn">fetch_weather_data</span>(start_date=start, end_date=end)
+    df = df.<span class="fn">merge</span>(weather, on=<span class="str">"date"</span>, how=<span class="str">"left"</span>)
+
+    <span class="cm"># Feature derivee : jour de pluie (&gt; 1mm)</span>
+    df[<span class="str">"is_rainy"</span>] = (df[<span class="str">"precipitation"</span>].<span class="fn">fillna</span>(<span class="num">0</span>) &gt; <span class="num">1.0</span>).<span class="fn">astype</span>(<span class="bi">int</span>)
+
+    <span class="kw">return</span> df
+
+
+<span class="kw">def</span> <span class="fn">run_enrichment</span>(df: pd.DataFrame) -&gt; pd.DataFrame:
+    <span class="str">"""Run all enrichment steps."""</span>
+    df = <span class="fn">add_calendar_features</span>(df)
+    df = <span class="fn">add_holiday_features</span>(df)
+    df = <span class="fn">enrich_with_weather</span>(df)
+    <span class="kw">return</span> df
+
+
+<span class="kw">if</span> <span class="bi">__name__</span> == <span class="str">"__main__"</span>:
+    logging.<span class="fn">basicConfig</span>(level=logging.INFO)
+    <span class="kw">from</span> src.config <span class="kw">import</span> RAW_DIR
+    df = pd.<span class="fn">read_parquet</span>(RAW_DIR / <span class="str">"rossmann_clean.parquet"</span>)
+    enriched = <span class="fn">run_enrichment</span>(df)
+    enriched.<span class="fn">to_parquet</span>(
+        RAW_DIR.parent / <span class="str">"processed"</span> / <span class="str">"rossmann_enriched.parquet"</span>,
+        index=<span class="bi">False</span>,
+    )</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>enrich_with_weather()</strong> fait une jointure LEFT sur la colonne <code>date</code>
+    entre les ventes et la meteo. Le seuil de 1mm pour <code>is_rainy</code> est une convention
+    meteorologique standard (en dessous, c'est de la bruine negligeable).
+    <code>fillna(0)</code> traite les jours sans donnee meteo comme des jours secs.
+  </p>
+  <p>
+    <strong>run_enrichment()</strong> chaine les trois etapes dans l'ordre :
+    calendrier &rarr; jours feries &rarr; meteo. L'ordre n'a pas d'importance ici
+    car chaque fonction ajoute des colonnes independantes sans modifier les existantes.
+  </p>
+  <p>
+    Le resultat final est sauvegarde dans <code>data/processed/rossmann_enriched.parquet</code>.
+    Ce fichier servira d'entree a la Phase 2 (feature engineering).
+  </p>
+  <p>Execution :</p>
+  <pre><code>python -m src.data.enrichment</code></pre>
+</div>
+
+
+<!-- VALIDATION -->
+<h2 id="validation">Validation des donnees</h2>
+
+<p>
+  Le module <code>src/data/validation.py</code> verifie la qualite des donnees
+  a chaque etape du pipeline en utilisant <strong>Pandera</strong>, une librairie
+  de validation de schemas pour Pandas DataFrames.
+</p>
+
+<h3 id="schemas">Schemas Pandera</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/data/validation.py &mdash; lignes 11-35</div>
+  <pre><code><span class="cm"># Schema pour les donnees brutes (apres nettoyage, avant enrichissement)</span>
+raw_sales_schema = <span class="fn">DataFrameSchema</span>(
+    columns={
+        <span class="str">"store_id"</span>:    <span class="fn">Column</span>(<span class="bi">int</span>,   Check.<span class="fn">gt</span>(<span class="num">0</span>)),
+        <span class="str">"date"</span>:        <span class="fn">Column</span>(<span class="str">"datetime64[ns]"</span>),
+        <span class="str">"sales"</span>:       <span class="fn">Column</span>(<span class="bi">int</span>,   Check.<span class="fn">ge</span>(<span class="num">0</span>)),
+        <span class="str">"customers"</span>:   <span class="fn">Column</span>(<span class="bi">int</span>,   Check.<span class="fn">ge</span>(<span class="num">0</span>), nullable=<span class="bi">True</span>),
+        <span class="str">"is_open"</span>:     <span class="fn">Column</span>(<span class="bi">int</span>,   Check.<span class="fn">isin</span>([<span class="num">0</span>, <span class="num">1</span>])),
+        <span class="str">"promo"</span>:       <span class="fn">Column</span>(<span class="bi">int</span>,   Check.<span class="fn">isin</span>([<span class="num">0</span>, <span class="num">1</span>])),
+        <span class="str">"day_of_week"</span>: <span class="fn">Column</span>(<span class="bi">int</span>,   Check.<span class="fn">in_range</span>(<span class="num">1</span>, <span class="num">7</span>)),
+    },
+    coerce=<span class="bi">True</span>,
+)
+
+<span class="cm"># Schema pour les donnees enrichies (apres ajout calendrier/meteo)</span>
+enriched_schema = <span class="fn">DataFrameSchema</span>(
+    columns={
+        <span class="str">"store_id"</span>:    <span class="fn">Column</span>(<span class="bi">int</span>,   Check.<span class="fn">gt</span>(<span class="num">0</span>)),
+        <span class="str">"date"</span>:        <span class="fn">Column</span>(<span class="str">"datetime64[ns]"</span>),
+        <span class="str">"sales"</span>:       <span class="fn">Column</span>(<span class="bi">int</span>,   Check.<span class="fn">gt</span>(<span class="num">0</span>)),        <span class="cm"># &gt; 0 apres filtrage</span>
+        <span class="str">"month"</span>:       <span class="fn">Column</span>(<span class="bi">int</span>,   Check.<span class="fn">in_range</span>(<span class="num">1</span>, <span class="num">12</span>)),
+        <span class="str">"day_of_week"</span>: <span class="fn">Column</span>(<span class="bi">int</span>,   Check.<span class="fn">in_range</span>(<span class="num">1</span>, <span class="num">7</span>)),
+        <span class="str">"is_weekend"</span>:  <span class="fn">Column</span>(<span class="bi">int</span>,   Check.<span class="fn">isin</span>([<span class="num">0</span>, <span class="num">1</span>])),
+        <span class="str">"is_holiday"</span>:  <span class="fn">Column</span>(<span class="bi">int</span>,   Check.<span class="fn">isin</span>([<span class="num">0</span>, <span class="num">1</span>])),
+    },
+    coerce=<span class="bi">True</span>,
+)</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>Pandera</strong> est a Pandas ce que les validateurs de schema JSON sont aux APIs :
+    il definit des <em>contrats</em> sur les donnees. Chaque colonne a un type attendu et des
+    contraintes (<code>Check</code>).
+  </p>
+  <p><strong>Contraintes appliquees :</strong></p>
+  <ul>
+    <li><code>Check.gt(0)</code> &mdash; strictement positif (store_id ne peut pas etre 0 ou negatif)</li>
+    <li><code>Check.ge(0)</code> &mdash; positif ou zero (ventes et clients)</li>
+    <li><code>Check.isin([0, 1])</code> &mdash; booleen encode en entier</li>
+    <li><code>Check.in_range(1, 12)</code> &mdash; plage valide pour le mois</li>
+  </ul>
+  <p>
+    <code>coerce=True</code> permet a Pandera de convertir les types automatiquement avant validation
+    (par ex. <code>float</code> &rarr; <code>int</code>). C'est plus tolerant que de rejeter
+    les donnees pour un simple probleme de type.
+  </p>
+  <p>
+    Difference entre les deux schemas : <code>raw_sales_schema</code> accepte <code>sales &gt;= 0</code>
+    (les magasins fermes ont 0 ventes) tandis que <code>enriched_schema</code> exige <code>sales &gt; 0</code>
+    car le filtrage dans <code>clean_data()</code> a deja supprime les zeros.
+  </p>
+</div>
+
+<h3 id="continuity">Verification de la continuite des dates</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/data/validation.py &mdash; lignes 52-71</div>
+  <pre><code><span class="kw">def</span> <span class="fn">check_date_continuity</span>(df: pd.DataFrame) -&gt; <span class="bi">dict</span>:
+    <span class="str">"""Check for gaps in date sequences per store."""</span>
+    issues = {}
+
+    <span class="kw">for</span> store_id, group <span class="kw">in</span> df.<span class="fn">groupby</span>(<span class="str">"store_id"</span>):
+        dates = group[<span class="str">"date"</span>].<span class="fn">sort_values</span>()
+
+        <span class="cm"># Generer toutes les dates attendues entre min et max</span>
+        expected = pd.<span class="fn">date_range</span>(dates.<span class="fn">min</span>(), dates.<span class="fn">max</span>(), freq=<span class="str">"D"</span>)
+
+        <span class="cm"># Les dates manquantes = attendues - presentes</span>
+        missing = <span class="bi">set</span>(expected) - <span class="bi">set</span>(dates)
+
+        <span class="kw">if</span> missing:
+            issues[store_id] = <span class="bi">sorted</span>(missing)
+
+    <span class="kw">if</span> issues:
+        total_gaps = <span class="bi">sum</span>(<span class="bi">len</span>(v) <span class="kw">for</span> v <span class="kw">in</span> issues.<span class="fn">values</span>())
+        logger.<span class="fn">warning</span>(
+            <span class="str">"Date gaps found in %d stores (%d total missing days)"</span>,
+            <span class="bi">len</span>(issues), total_gaps,
+        )
+    <span class="kw">else</span>:
+        logger.<span class="fn">info</span>(<span class="str">"No date gaps found"</span>)
+
+    <span class="kw">return</span> issues</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>Pourquoi c'est critique pour le forecasting :</strong> les modeles de series temporelles
+    (LSTM, TFT, et meme les lags features) supposent que les dates sont continues.
+    Un trou de 3 jours dans les donnees d'un magasin fausserait le calcul
+    <code>sales_lag_7</code> (le lag pointerait sur le mauvais jour).
+  </p>
+  <p>
+    L'algorithme est simple : pour chaque magasin, generer la sequence complete de dates
+    entre le premier et le dernier jour, puis comparer avec les dates reellement presentes.
+    La difference = les jours manquants.
+  </p>
+  <p>
+    Les trous sont attendus dans Rossmann (magasins fermes le dimanche, renovations...).
+    Cette fonction ne les corrige pas, elle les detecte. La correction (interpolation,
+    imputation, ou exclusion) sera geree dans le feature engineering (Phase 2).
+  </p>
+</div>
+
+
+<!-- QUICKSTART -->
+<h2 id="quickstart">Demarrage rapide</h2>
+
+<h3>Prerequis</h3>
+<ul>
+  <li>Python 3.11+</li>
+  <li>Docker et Docker Compose</li>
+  <li>Compte Kaggle avec API token configure</li>
+</ul>
+
+<h3>Installation</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> Terminal</div>
+  <pre><code><span class="cm"># 1. Cloner le repo</span>
+git clone https://github.com/SpiritGitHub/demand-forecasting-platform.git
+<span class="kw">cd</span> demand-forecasting-platform
+
+<span class="cm"># 2. Creer et activer l'environnement virtuel</span>
+python -m venv venv
+venv\Scripts\activate          <span class="cm"># Windows</span>
+<span class="cm"># source venv/bin/activate      # Linux/Mac</span>
+
+<span class="cm"># 3. Installer les dependances</span>
+pip install -r requirements.txt
+
+<span class="cm"># 4. Configurer l'environnement</span>
+<span class="kw">cp</span> .env.example .env
+<span class="cm"># Editer .env : ajouter KAGGLE_USERNAME et KAGGLE_KEY</span>
+
+<span class="cm"># 5. Lancer l'infrastructure</span>
+docker-compose up -d
+
+<span class="cm"># 6. Executer le pipeline d'ingestion</span>
+python -m src.data.ingestion
+
+<span class="cm"># 7. Executer l'enrichissement</span>
+python -m src.data.enrichment
+
+<span class="cm"># 8. Valider les donnees</span>
+python -m src.data.validation</code></pre>
+</div>
+
+<div class="explain">
+  <p><strong>Apres ces 8 commandes :</strong></p>
+  <ul>
+    <li>PostgreSQL tourne sur <code>localhost:5432</code> avec les donnees chargees</li>
+    <li>pgAdmin est accessible sur <code>localhost:8080</code></li>
+    <li>MLflow est accessible sur <code>localhost:5000</code></li>
+    <li>Le fichier <code>data/processed/rossmann_enriched.parquet</code> est pret pour la Phase 2</li>
+  </ul>
+</div>
+
+
+<!-- ROADMAP -->
+<h2 id="roadmap">Feuille de route</h2>
+
+<div class="roadmap-item">
+  <span class="roadmap-phase">1</span>
+  <span class="roadmap-title">Setup, ingestion, enrichissement, validation</span>
+  <span class="phase-badge done">Termine</span>
+</div>
+<div class="roadmap-item">
+  <span class="roadmap-phase">2</span>
+  <span class="roadmap-title">Analyse exploratoire et feature engineering (~30 features)</span>
+  <span class="phase-badge future">A venir</span>
+</div>
+<div class="roadmap-item">
+  <span class="roadmap-phase">3</span>
+  <span class="roadmap-title">7 modeles + backtesting temporel (walk-forward)</span>
+  <span class="phase-badge future">A venir</span>
+</div>
+<div class="roadmap-item">
+  <span class="roadmap-phase">4</span>
+  <span class="roadmap-title">Comparaison des modeles, selection du champion</span>
+  <span class="phase-badge future">A venir</span>
+</div>
+<div class="roadmap-item">
+  <span class="roadmap-phase">5</span>
+  <span class="roadmap-title">Moteur de reapprovisionnement (stock securite, risque rupture)</span>
+  <span class="phase-badge future">A venir</span>
+</div>
+<div class="roadmap-item">
+  <span class="roadmap-phase">6</span>
+  <span class="roadmap-title">API FastAPI (endpoints forecast + replenishment)</span>
+  <span class="phase-badge future">A venir</span>
+</div>
+<div class="roadmap-item">
+  <span class="roadmap-phase">7</span>
+  <span class="roadmap-title">Dashboard Streamlit (5 pages interactives)</span>
+  <span class="phase-badge future">A venir</span>
+</div>
+<div class="roadmap-item">
+  <span class="roadmap-phase">8</span>
+  <span class="roadmap-title">Orchestration Airflow + monitoring drift</span>
+  <span class="phase-badge future">A venir</span>
+</div>
+<div class="roadmap-item">
+  <span class="roadmap-phase">9</span>
+  <span class="roadmap-title">Tests, documentation finale, Dockerisation</span>
+  <span class="phase-badge future">A venir</span>
+</div>
+
+<div class="table-wrap" style="margin-top: 28px;">
+  <table>
+    <thead>
+      <tr>
+        <th>Dependance</th>
+        <th>Role</th>
+        <th>Phase</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td><code>pandas</code>, <code>numpy</code></td><td>Manipulation de donnees, calcul numerique</td><td>1-9</td></tr>
+      <tr><td><code>sqlalchemy</code>, <code>psycopg2</code></td><td>ORM et driver PostgreSQL</td><td>1</td></tr>
+      <tr><td><code>pandera</code></td><td>Validation de schemas DataFrame</td><td>1</td></tr>
+      <tr><td><code>holidays</code></td><td>Jours feries par pays</td><td>1</td></tr>
+      <tr><td><code>requests</code></td><td>Appels API (Open-Meteo)</td><td>1</td></tr>
+      <tr><td><code>python-dotenv</code></td><td>Chargement .env</td><td>1</td></tr>
+      <tr><td><code>pyarrow</code></td><td>Lecture/ecriture Parquet</td><td>1</td></tr>
+      <tr><td><code>scikit-learn</code></td><td>Regression, Random Forest, metriques</td><td>3</td></tr>
+      <tr><td><code>xgboost</code>, <code>lightgbm</code></td><td>Gradient boosting</td><td>3</td></tr>
+      <tr><td><code>prophet</code></td><td>Decomposition tendance/saisonnalite</td><td>3</td></tr>
+      <tr><td><code>torch</code>, <code>pytorch-forecasting</code></td><td>LSTM, Temporal Fusion Transformer</td><td>3</td></tr>
+      <tr><td><code>optuna</code></td><td>Optimisation hyperparametres</td><td>3</td></tr>
+      <tr><td><code>mlflow</code></td><td>Tracking experiences, model registry</td><td>3-4</td></tr>
+      <tr><td><code>fastapi</code>, <code>uvicorn</code></td><td>API REST</td><td>6</td></tr>
+      <tr><td><code>streamlit</code>, <code>plotly</code></td><td>Dashboard interactif</td><td>7</td></tr>
+    </tbody>
+  </table>
+</div>
+
+</main>
+</div>
+
+</body>
+</html>
