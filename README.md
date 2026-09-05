@@ -41,24 +41,38 @@ python -m src.data.ingestion
 
 # Run data enrichment
 python -m src.data.enrichment
+
+# Run feature engineering
+python -m src.features.engineering
 ```
 
 ## Project Structure
 
 ```
 ├── src/
-│   ├── data/           # Ingestion, validation, enrichment
-│   ├── features/       # Feature engineering
-│   ├── models/         # All forecasting models
-│   ├── evaluation/     # Metrics and backtesting
-│   └── replenishment/  # Inventory recommendation engine
-├── api/                # FastAPI application
-├── dashboard/          # Streamlit dashboard
-├── airflow/            # DAGs for orchestration
-├── monitoring/         # Data and model drift detection
-├── notebooks/          # Exploratory analysis
-├── tests/              # Unit and integration tests
-└── data/               # Raw, processed, and feature data
+│   ├── config.py           # Paths, DB connection, constants
+│   ├── data/
+│   │   ├── ingestion.py    # Kaggle download, cleaning, PostgreSQL insert
+│   │   ├── enrichment.py   # Weather, holidays, calendar features
+│   │   └── validation.py   # Pandera schemas, date continuity checks
+│   └── features/
+│       └── engineering.py  # Lags, rolling, promo, competition, interactions
+├── notebooks/
+│   └── 01_exploration.ipynb  # EDA: distributions, STL, promo lift, outliers
+├── api/                # FastAPI application (Phase 6)
+├── dashboard/          # Streamlit dashboard (Phase 7)
+├── airflow/            # DAGs for orchestration (Phase 8)
+├── monitoring/         # Data and model drift detection (Phase 8)
+├── tests/              # Unit and integration tests (Phase 9)
+├── docs/
+│   └── documentation.html  # Full technical docs (open in browser)
+├── data/
+│   ├── raw/            # Raw CSVs + cleaned parquet
+│   ├── external/       # Cached weather data
+│   ├── processed/      # Enriched dataset
+│   └── features/       # ML-ready features
+└── scripts/
+    └── init_db.sql     # PostgreSQL schema
 ```
 
 ## Architecture
@@ -69,9 +83,30 @@ Raw Data → ETL → PostgreSQL → Validation → Feature Engineering
     → FastAPI → Dashboard → Monitoring
 ```
 
+## Feature Engineering
+
+The `src/features/engineering.py` module generates ~30 ML features per row:
+
+| Category | Features |
+|----------|----------|
+| Lag | `sales_lag_7`, `sales_lag_14`, `sales_lag_28` |
+| Rolling | `rolling_mean_7/14/28`, `rolling_std_7`, `ewm_7` |
+| Trend | `sales_trend` (short vs long moving average) |
+| Promo | `promo_duration` (consecutive promo days) |
+| Competition | `competition_distance_log`, `competition_open_months` |
+| Store | `store_type_enc`, `assortment_enc`, `store_mean/median/std_sales` |
+| Interactions | `promo_x_weekend`, `promo_x_holiday`, `holiday_x_store_type` |
+| Day profile | `store_dow_mean_sales`, `store_dow_ratio` |
+
+All lag/rolling features use `shift(1)` to prevent data leakage. Store aggregates accept a `train_end_date` parameter for safe backtesting.
+
 ## Dataset
 
 Based on [Rossmann Store Sales](https://www.kaggle.com/c/rossmann-store-sales) (Kaggle), enriched with:
 - Historical weather data (Open-Meteo API)
 - German public holidays
 - Calendar features
+
+## Documentation
+
+Open `docs/documentation.html` in your browser for the full technical documentation with syntax-highlighted code and detailed French explanations.

@@ -492,6 +492,15 @@ figcaption {
     <a href="#schemas" class="indent">Schemas Pandera</a>
     <a href="#continuity" class="indent">Continuite des dates</a>
     <div class="sep"></div>
+    <a href="#features">Feature Engineering</a>
+    <a href="#feat-lags" class="indent">Lags &amp; rolling</a>
+    <a href="#feat-promo" class="indent">Promo &amp; competition</a>
+    <a href="#feat-interactions" class="indent">Interactions &amp; encodage</a>
+    <a href="#feat-aggregates" class="indent">Agregats magasin</a>
+    <a href="#feat-pipeline" class="indent">build_features()</a>
+    <div class="sep"></div>
+    <a href="#eda">Notebook EDA</a>
+    <div class="sep"></div>
     <a href="#quickstart">Demarrage rapide</a>
     <a href="#roadmap">Feuille de route</a>
   </nav>
@@ -503,7 +512,7 @@ figcaption {
 <!-- OVERVIEW -->
 <h1 id="overview">Demand Forecasting &amp; Replenishment Platform</h1>
 <p class="subtitle">
-  Documentation technique &mdash; Phase 1 : Setup, ingestion, enrichissement et validation des donnees.
+  Documentation technique &mdash; Phases 1-2 : Setup, ingestion, enrichissement, validation et feature engineering.
   Plateforme de prevision de la demande et de recommandation de reapprovisionnement pour le retail.
 </p>
 
@@ -1564,6 +1573,306 @@ enriched_schema = <span class="fn">DataFrameSchema</span>(
 </div>
 
 
+<!-- FEATURE ENGINEERING -->
+<h2 id="features">Feature Engineering</h2>
+
+<p>
+  Le module <code>src/features/engineering.py</code> construit les features ML
+  a partir du dataset enrichi. Toutes les features temporelles (lags, rolling)
+  sont calculees <strong>par magasin</strong> et decalees d'un jour (<code>shift(1)</code>)
+  pour eviter le <em>data leakage</em>.
+</p>
+
+<h3 id="feat-lags">Features de lag et rolling</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/features/engineering.py &mdash; add_lag_features, add_rolling_features, add_ewm_features</div>
+  <pre><code><span class="kw">def</span> <span class="fn">add_lag_features</span>(df, target=<span class="str">"sales"</span>, lags=<span class="bi">None</span>):
+    <span class="kw">if</span> lags <span class="kw">is</span> <span class="bi">None</span>:
+        lags = [<span class="num">7</span>, <span class="num">14</span>, <span class="num">28</span>]
+    <span class="kw">for</span> lag <span class="kw">in</span> lags:
+        col = <span class="str">f"</span>{target}<span class="str">_lag_</span>{lag}<span class="str">"</span>
+        df[col] = df.<span class="fn">groupby</span>(<span class="str">"store_id"</span>)[target].<span class="fn">shift</span>(lag)
+    <span class="kw">return</span> df
+
+<span class="kw">def</span> <span class="fn">add_rolling_features</span>(df, target=<span class="str">"sales"</span>, windows=<span class="bi">None</span>):
+    <span class="kw">if</span> windows <span class="kw">is</span> <span class="bi">None</span>:
+        windows = [<span class="num">7</span>, <span class="num">14</span>, <span class="num">28</span>]
+    grouped = df.<span class="fn">groupby</span>(<span class="str">"store_id"</span>)[target]
+    <span class="kw">for</span> w <span class="kw">in</span> windows:
+        shifted = grouped.<span class="fn">shift</span>(<span class="num">1</span>)           <span class="cm"># exclure le jour courant</span>
+        rolling = shifted.<span class="fn">rolling</span>(window=w, min_periods=w)
+        df[<span class="str">f"</span>{target}<span class="str">_rolling_mean_</span>{w}<span class="str">"</span>] = rolling.<span class="fn">mean</span>()
+        <span class="kw">if</span> w == <span class="num">7</span>:
+            df[<span class="str">f"</span>{target}<span class="str">_rolling_std_</span>{w}<span class="str">"</span>] = rolling.<span class="fn">std</span>()
+    <span class="kw">return</span> df
+
+<span class="kw">def</span> <span class="fn">add_ewm_features</span>(df, target=<span class="str">"sales"</span>, span=<span class="num">7</span>):
+    shifted = df.<span class="fn">groupby</span>(<span class="str">"store_id"</span>)[target].<span class="fn">shift</span>(<span class="num">1</span>)
+    df[<span class="str">f"</span>{target}<span class="str">_ewm_</span>{span}<span class="str">"</span>] = shifted.<span class="fn">ewm</span>(span=span, min_periods=span).<span class="fn">mean</span>()
+    <span class="kw">return</span> df
+
+<span class="kw">def</span> <span class="fn">add_trend_features</span>(df, target=<span class="str">"sales"</span>):
+    <span class="cm"># Momentum : difference entre moyenne courte et longue</span>
+    <span class="kw">if</span> <span class="str">f"</span>{target}<span class="str">_rolling_mean_7"</span> <span class="kw">in</span> df.columns:
+        df[<span class="str">f"</span>{target}<span class="str">_trend"</span>] = (
+            df[<span class="str">f"</span>{target}<span class="str">_rolling_mean_7"</span>] - df[<span class="str">f"</span>{target}<span class="str">_rolling_mean_28"</span>]
+        )
+    <span class="kw">return</span> df</code></pre>
+</div>
+
+<div class="explain">
+  <p><strong>7 features temporelles generees :</strong></p>
+  <p>
+    <strong>Lags</strong> (3 features) &mdash; <code>sales_lag_7</code>, <code>sales_lag_14</code>,
+    <code>sales_lag_28</code> : les ventes du meme magasin il y a 7, 14, et 28 jours.
+    C'est l'information la plus predictive : les ventes de la semaine derniere sont un excellent
+    indicateur des ventes de cette semaine.
+  </p>
+  <p>
+    <strong>Rolling</strong> (4 features) &mdash; Moyenne mobile sur 7/14/28 jours et ecart-type sur 7 jours.
+    Le <code>shift(1)</code> est critique : sans lui, la moyenne inclurait les ventes du jour
+    qu'on essaie de predire. <code>min_periods=w</code> garantit qu'on ne calcule la moyenne
+    que quand on a suffisamment de donnees (les premiers jours produisent des NaN).
+  </p>
+  <p>
+    <strong>EWM</strong> &mdash; Moyenne mobile exponentielle (span=7). Donne plus de poids aux jours
+    recents, ce qui capture mieux les changements de tendance que la moyenne simple.
+  </p>
+  <p>
+    <strong>Trend</strong> &mdash; <code>rolling_mean_7 - rolling_mean_28</code>. Un trend positif
+    signifie que les ventes recentes sont au-dessus de la moyenne long terme (acceleration).
+  </p>
+</div>
+
+<h3 id="feat-promo">Features promo et competition</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/features/engineering.py &mdash; add_promo_features, add_competition_features</div>
+  <pre><code><span class="kw">def</span> <span class="fn">add_promo_features</span>(df):
+    <span class="cm"># Nombre de jours consecutifs de promo</span>
+    promo_groups = df.<span class="fn">groupby</span>(<span class="str">"store_id"</span>)[<span class="str">"promo"</span>]
+    df[<span class="str">"promo_duration"</span>] = promo_groups.<span class="fn">transform</span>(
+        <span class="kw">lambda</span> s: s.<span class="fn">groupby</span>((s != s.<span class="fn">shift</span>()).<span class="fn">cumsum</span>()).<span class="fn">cumcount</span>() + <span class="num">1</span>
+    )
+    df.<span class="fn">loc</span>[df[<span class="str">"promo"</span>] == <span class="num">0</span>, <span class="str">"promo_duration"</span>] = <span class="num">0</span>
+    <span class="kw">return</span> df
+
+<span class="kw">def</span> <span class="fn">add_competition_features</span>(df):
+    <span class="cm"># Log de la distance (reduit l'asymetrie)</span>
+    median_dist = df[<span class="str">"competition_distance"</span>].<span class="fn">median</span>()
+    df[<span class="str">"competition_distance"</span>] = df[<span class="str">"competition_distance"</span>].<span class="fn">fillna</span>(median_dist)
+    df[<span class="str">"competition_distance_log"</span>] = np.<span class="fn">log1p</span>(df[<span class="str">"competition_distance"</span>])
+
+    <span class="cm"># Nombre de mois depuis l'ouverture du concurrent</span>
+    comp_year = df[<span class="str">"competition_open_since_year"</span>].<span class="fn">fillna</span>(<span class="num">0</span>).<span class="fn">astype</span>(<span class="bi">int</span>)
+    comp_month = df[<span class="str">"competition_open_since_month"</span>].<span class="fn">fillna</span>(<span class="num">0</span>).<span class="fn">astype</span>(<span class="bi">int</span>)
+    df[<span class="str">"competition_open_months"</span>] = (
+        (df[<span class="str">"date"</span>].dt.year - comp_year) * <span class="num">12</span>
+        + (df[<span class="str">"date"</span>].dt.month - comp_month)
+    ).<span class="fn">clip</span>(lower=<span class="num">0</span>)
+    <span class="kw">return</span> df</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>promo_duration</strong> &mdash; Compte le nombre de jours consecutifs de promotion.
+    L'algorithme utilise <code>cumsum()</code> sur les changements d'etat (0&rarr;1 ou 1&rarr;0)
+    pour identifier chaque "bloc" de promo, puis <code>cumcount()</code> pour compter les jours
+    dans chaque bloc. La duree est remise a 0 les jours sans promo.
+    Cette feature capture l'effet d'usure des promos : le lift diminue apres plusieurs jours.
+  </p>
+  <p>
+    <strong>competition_distance_log</strong> &mdash; <code>log(1 + distance)</code> reduit l'asymetrie
+    de la distribution (quelques magasins ont des concurrents tres loin).
+    Les valeurs manquantes sont imputees par la mediane.
+  </p>
+  <p>
+    <strong>competition_open_months</strong> &mdash; Depuis combien de mois le concurrent le plus proche
+    est ouvert. Un nouveau concurrent peut impacter les ventes differemment qu'un concurrent etabli.
+  </p>
+</div>
+
+<h3 id="feat-interactions">Interactions et encodage</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/features/engineering.py &mdash; add_store_encoding, add_interaction_features</div>
+  <pre><code><span class="kw">def</span> <span class="fn">add_store_encoding</span>(df):
+    type_map = {<span class="str">"a"</span>: <span class="num">1</span>, <span class="str">"b"</span>: <span class="num">2</span>, <span class="str">"c"</span>: <span class="num">3</span>, <span class="str">"d"</span>: <span class="num">4</span>}
+    assort_map = {<span class="str">"a"</span>: <span class="num">1</span>, <span class="str">"b"</span>: <span class="num">2</span>, <span class="str">"c"</span>: <span class="num">3</span>}
+    df[<span class="str">"store_type_enc"</span>] = df[<span class="str">"store_type"</span>].str.<span class="fn">lower</span>().<span class="fn">map</span>(type_map).<span class="fn">fillna</span>(<span class="num">0</span>)
+    df[<span class="str">"assortment_enc"</span>] = df[<span class="str">"assortment"</span>].str.<span class="fn">lower</span>().<span class="fn">map</span>(assort_map).<span class="fn">fillna</span>(<span class="num">0</span>)
+    <span class="kw">return</span> df
+
+<span class="kw">def</span> <span class="fn">add_interaction_features</span>(df):
+    df[<span class="str">"promo_x_weekend"</span>]      = df[<span class="str">"promo"</span>] * df[<span class="str">"is_weekend"</span>]
+    df[<span class="str">"promo_x_holiday"</span>]      = df[<span class="str">"promo"</span>] * df[<span class="str">"is_holiday"</span>]
+    df[<span class="str">"holiday_x_store_type"</span>]  = df[<span class="str">"is_holiday"</span>] * df[<span class="str">"store_type_enc"</span>]
+    df[<span class="str">"dow_x_promo"</span>]          = df[<span class="str">"day_of_week"</span>] * df[<span class="str">"promo"</span>]
+    <span class="kw">return</span> df</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>Encodage ordinal</strong> &mdash; Les types de magasin (a/b/c/d) et d'assortiment (a/b/c)
+    sont convertis en entiers. L'encodage ordinal est suffisant pour les modeles a base d'arbres
+    (XGBoost, LightGBM) qui n'assument pas de relation lineaire entre les categories.
+  </p>
+  <p>
+    <strong>Features d'interaction</strong> (4 features) &mdash; Le produit de deux features binaires
+    capture l'effet combine. Par exemple, <code>promo_x_weekend</code> = 1 uniquement quand il y a
+    promo ET c'est le weekend. Cela permet au modele de capturer des effets non-lineaires
+    sans avoir a les decouvrir lui-meme.
+  </p>
+</div>
+
+<h3 id="feat-aggregates">Agregats par magasin</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/features/engineering.py &mdash; add_store_aggregates, add_dow_profile</div>
+  <pre><code><span class="kw">def</span> <span class="fn">add_store_aggregates</span>(df, train_end_date=<span class="bi">None</span>):
+    <span class="cm"># Utiliser uniquement les donnees d'entrainement pour eviter le leakage</span>
+    <span class="kw">if</span> train_end_date <span class="kw">is not</span> <span class="bi">None</span>:
+        ref = df[df[<span class="str">"date"</span>] &lt;= pd.<span class="fn">Timestamp</span>(train_end_date)]
+    <span class="kw">else</span>:
+        ref = df
+
+    store_stats = ref.<span class="fn">groupby</span>(<span class="str">"store_id"</span>)[<span class="str">"sales"</span>].<span class="fn">agg</span>(
+        store_mean_sales=<span class="str">"mean"</span>,
+        store_median_sales=<span class="str">"median"</span>,
+        store_std_sales=<span class="str">"std"</span>,
+    ).<span class="fn">reset_index</span>()
+
+    df = df.<span class="fn">merge</span>(store_stats, on=<span class="str">"store_id"</span>, how=<span class="str">"left"</span>)
+    <span class="kw">return</span> df
+
+<span class="kw">def</span> <span class="fn">add_dow_profile</span>(df, train_end_date=<span class="bi">None</span>):
+    <span class="cm"># Profil de ventes par (magasin, jour de la semaine)</span>
+    <span class="kw">if</span> train_end_date <span class="kw">is not</span> <span class="bi">None</span>:
+        ref = df[df[<span class="str">"date"</span>] &lt;= pd.<span class="fn">Timestamp</span>(train_end_date)]
+    <span class="kw">else</span>:
+        ref = df
+
+    store_dow = ref.<span class="fn">groupby</span>([<span class="str">"store_id"</span>, <span class="str">"day_of_week"</span>])[<span class="str">"sales"</span>].<span class="fn">mean</span>().<span class="fn">reset_index</span>()
+    store_dow = store_dow.<span class="fn">rename</span>(columns={<span class="str">"sales"</span>: <span class="str">"store_dow_mean_sales"</span>})
+    df = df.<span class="fn">merge</span>(store_dow, on=[<span class="str">"store_id"</span>, <span class="str">"day_of_week"</span>], how=<span class="str">"left"</span>)
+
+    <span class="cm"># Ratio : ventes du jour / moyenne globale du magasin</span>
+    store_mean = ref.<span class="fn">groupby</span>(<span class="str">"store_id"</span>)[<span class="str">"sales"</span>].<span class="fn">mean</span>()
+    df[<span class="str">"store_dow_ratio"</span>] = df[<span class="str">"store_dow_mean_sales"</span>] / df[<span class="str">"store_id"</span>].<span class="fn">map</span>(store_mean)
+    <span class="kw">return</span> df</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>Anti-leakage via train_end_date</strong> &mdash; Les agregats (moyenne, mediane, std par magasin)
+    sont calcules uniquement sur les donnees d'entrainement. Sans cette precaution,
+    les features contiendraient de l'information du futur et le modele aurait des scores
+    artificiellement bons en validation mais mauvais en production.
+  </p>
+  <p>
+    <strong>store_mean_sales / store_median_sales / store_std_sales</strong> &mdash; Capturent le "niveau"
+    de chaque magasin. Un magasin qui vend en moyenne 8000 par jour a un profil tres different
+    d'un magasin a 3000. Ces features permettent au modele de situer chaque magasin.
+  </p>
+  <p>
+    <strong>store_dow_mean_sales</strong> &mdash; Ventes moyennes du magasin X le lundi, le mardi, etc.
+    C'est une feature tres puissante car chaque magasin a son propre profil hebdomadaire
+    (certains vendent beaucoup le samedi, d'autres non).
+  </p>
+  <p>
+    <strong>store_dow_ratio</strong> &mdash; Le ratio normalise : si un magasin vend 120% de sa moyenne
+    le lundi, le ratio est 1.2. Cela rend la feature comparable entre magasins de tailles differentes.
+  </p>
+</div>
+
+<h3 id="feat-pipeline">build_features() &mdash; Le pipeline complet</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/features/engineering.py &mdash; lignes 215-245</div>
+  <pre><code><span class="kw">def</span> <span class="fn">build_features</span>(df, train_end_date=<span class="bi">None</span>, drop_na=<span class="bi">True</span>):
+    df = df.<span class="fn">sort_values</span>([<span class="str">"store_id"</span>, <span class="str">"date"</span>]).<span class="fn">reset_index</span>(drop=<span class="bi">True</span>)
+
+    df = <span class="fn">add_lag_features</span>(df)
+    df = <span class="fn">add_rolling_features</span>(df)
+    df = <span class="fn">add_ewm_features</span>(df)
+    df = <span class="fn">add_trend_features</span>(df)
+    df = <span class="fn">add_promo_features</span>(df)
+    df = <span class="fn">add_competition_features</span>(df)
+    df = <span class="fn">add_store_encoding</span>(df)
+    df = <span class="fn">add_interaction_features</span>(df)
+    df = <span class="fn">add_holiday_proximity</span>(df)
+    df = <span class="fn">add_store_aggregates</span>(df, train_end_date)
+    df = <span class="fn">add_dow_profile</span>(df, train_end_date)
+
+    <span class="kw">if</span> drop_na:
+        df = df.<span class="fn">dropna</span>(subset=[
+            c <span class="kw">for</span> c <span class="kw">in</span> df.columns
+            <span class="kw">if</span> <span class="str">"lag_"</span> <span class="kw">in</span> c <span class="kw">or</span> <span class="str">"rolling_"</span> <span class="kw">in</span> c <span class="kw">or</span> <span class="str">"ewm_"</span> <span class="kw">in</span> c
+        ])
+    <span class="kw">return</span> df
+
+<span class="kw">if</span> <span class="bi">__name__</span> == <span class="str">"__main__"</span>:
+    df = pd.<span class="fn">read_parquet</span>(PROCESSED_DIR / <span class="str">"rossmann_enriched.parquet"</span>)
+    df = <span class="fn">build_features</span>(df)
+    df.<span class="fn">to_parquet</span>(FEATURES_DIR / <span class="str">"rossmann_features.parquet"</span>)</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>12 etapes chainées</strong> dans un ordre precis : les lags et rolling d'abord (car le trend
+    depend de rolling_mean), puis les features contextuelles (promo, competition), l'encodage
+    (car les interactions dependent de store_type_enc), et enfin les agregats.
+  </p>
+  <p>
+    <strong>drop_na</strong> &mdash; Les 28 premiers jours de chaque magasin produisent des NaN
+    car les lags et rolling n'ont pas encore assez de donnees. Par defaut, ces lignes
+    sont supprimees. Le dataset passe d'environ 840K a ~810K lignes.
+  </p>
+  <p>Execution :</p>
+  <pre><code>python -m src.features.engineering</code></pre>
+  <p>
+    Le resultat est sauvegarde dans <code>data/features/rossmann_features.parquet</code>,
+    pret pour la Phase 3 (modelisation).
+  </p>
+</div>
+
+
+<!-- EDA NOTEBOOK -->
+<h2 id="eda">Notebook d'analyse exploratoire</h2>
+
+<p>
+  Le notebook <code>notebooks/01_exploration.ipynb</code> contient l'analyse exploratoire complete
+  en 11 sections avec visualisations Matplotlib et Seaborn :
+</p>
+
+<ul>
+  <li><strong>Distribution des ventes</strong> &mdash; Histogrammes, log-transformation, boxplots par type de magasin</li>
+  <li><strong>Patterns temporels</strong> &mdash; Ventes par jour de la semaine et par mois, serie temporelle agregee</li>
+  <li><strong>Decomposition STL</strong> &mdash; Tendance, saisonnalite hebdomadaire, residus (sur le magasin 1)</li>
+  <li><strong>Effet des promotions</strong> &mdash; Lift moyen, distribution promo vs non-promo, effet par jour et par type</li>
+  <li><strong>Impact de la meteo</strong> &mdash; Temperature vs ventes, tranches de temperature, jours pluvieux</li>
+  <li><strong>Jours feries</strong> &mdash; Effet sur les ventes, proximite du ferie</li>
+  <li><strong>Types de magasins</strong> &mdash; Comparaison des types (a/b/c/d) et assortiments</li>
+  <li><strong>Relation clients/ventes</strong> &mdash; Scatter plot avec couleur promo</li>
+  <li><strong>Detection d'outliers</strong> &mdash; Z-scores par magasin, top 15 magasins a outliers</li>
+  <li><strong>Matrice de correlation</strong> &mdash; Heatmap avec les features les plus correlees a la cible</li>
+  <li><strong>Apercu features</strong> &mdash; Test de <code>build_features()</code> sur un sous-ensemble</li>
+</ul>
+
+<div class="explain">
+  <p>
+    <strong>Observations cles</strong> (a confirmer en executant le notebook) :
+  </p>
+  <p>
+    Les ventes sont asymetriques (right-skewed) &mdash; une log-transformation sera utile pour certains modeles.
+    Le pattern hebdomadaire est tres fort (lundi &ne; samedi). Les promotions augmentent les ventes de ~30-40%.
+    La colonne <code>customers</code> est tres correlee aux ventes mais ne doit <strong>pas</strong> etre
+    utilisee comme feature car elle n'est pas connue a l'avance au moment de la prediction.
+  </p>
+</div>
+
+
 <!-- QUICKSTART -->
 <h2 id="quickstart">Demarrage rapide</h2>
 
@@ -1604,16 +1913,20 @@ python -m src.data.ingestion
 python -m src.data.enrichment
 
 <span class="cm"># 8. Valider les donnees</span>
-python -m src.data.validation</code></pre>
+python -m src.data.validation
+
+<span class="cm"># 9. Generer les features ML</span>
+python -m src.features.engineering</code></pre>
 </div>
 
 <div class="explain">
-  <p><strong>Apres ces 8 commandes :</strong></p>
+  <p><strong>Apres ces 9 commandes :</strong></p>
   <ul>
     <li>PostgreSQL tourne sur <code>localhost:5432</code> avec les donnees chargees</li>
     <li>pgAdmin est accessible sur <code>localhost:8080</code></li>
     <li>MLflow est accessible sur <code>localhost:5000</code></li>
-    <li>Le fichier <code>data/processed/rossmann_enriched.parquet</code> est pret pour la Phase 2</li>
+    <li>Le fichier <code>data/processed/rossmann_enriched.parquet</code> contient le dataset enrichi</li>
+    <li>Le fichier <code>data/features/rossmann_features.parquet</code> contient ~30 features ML, pret pour la Phase 3 (modelisation)</li>
   </ul>
 </div>
 
@@ -1629,7 +1942,7 @@ python -m src.data.validation</code></pre>
 <div class="roadmap-item">
   <span class="roadmap-phase">2</span>
   <span class="roadmap-title">Analyse exploratoire et feature engineering (~30 features)</span>
-  <span class="phase-badge future">A venir</span>
+  <span class="phase-badge done">Termine</span>
 </div>
 <div class="roadmap-item">
   <span class="roadmap-phase">3</span>
