@@ -579,6 +579,16 @@ figcaption {
     <a href="#bt-metrics" class="indent">Metriques</a>
     <a href="#bt-pipeline" class="indent">Pipeline train.py</a>
     <div class="sep"></div>
+    <a href="#comparison">Selection du champion</a>
+    <a href="#comp-ranking" class="indent">Classement WAPE</a>
+    <a href="#comp-mlflow" class="indent">MLflow logging</a>
+    <div class="sep"></div>
+    <a href="#replenishment">Reapprovisionnement</a>
+    <a href="#repl-safety" class="indent">Stock de securite</a>
+    <a href="#repl-order" class="indent">Quantite de commande</a>
+    <a href="#repl-risk" class="indent">Risque de rupture</a>
+    <a href="#repl-pipeline" class="indent">Pipeline complet</a>
+    <div class="sep"></div>
     <a href="#quickstart">Demarrage rapide</a>
     <a href="#roadmap">Feuille de route</a>
   </nav>
@@ -590,7 +600,7 @@ figcaption {
 <!-- OVERVIEW -->
 <h1 id="overview">Demand Forecasting &amp; Replenishment Platform</h1>
 <p class="subtitle">
-  Documentation technique &mdash; Phases 1-3 : Ingestion, enrichissement, feature engineering et modelisation.
+  Documentation technique &mdash; Phases 1-5 : Ingestion, features, modelisation, champion et reapprovisionnement.
   Plateforme de prevision de la demande et de recommandation de reapprovisionnement pour le retail.
 </p>
 
@@ -2289,6 +2299,234 @@ enriched_schema = <span class="fn">DataFrameSchema</span>(
 </div>
 
 
+<!-- CHAMPION SELECTION (Phase 4) -->
+<h2 id="comparison">Selection du champion</h2>
+
+<p>
+  Le module <code>src/evaluation/comparison.py</code> analyse les resultats du backtesting,
+  classe les modeles et selectionne le meilleur (le "champion").
+</p>
+
+<h3 id="comp-ranking">Classement par WAPE</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/evaluation/comparison.py</div>
+  <pre><code>RANKING_METRIC = <span class="str">"wape"</span>
+
+<span class="kw">def</span> <span class="fn">compute_summary</span>(results: pd.DataFrame) -> pd.DataFrame:
+    metrics = [<span class="str">"mae"</span>, <span class="str">"rmse"</span>, <span class="str">"wape"</span>, <span class="str">"bias"</span>]
+    agg = {}
+    <span class="kw">for</span> m <span class="kw">in</span> metrics:
+        agg[<span class="str">f"</span>{m}<span class="str">_mean"</span>] = (m, <span class="str">"mean"</span>)
+        agg[<span class="str">f"</span>{m}<span class="str">_std"</span>]  = (m, <span class="str">"std"</span>)
+
+    summary = results.<span class="fn">groupby</span>(<span class="str">"model"</span>).<span class="fn">agg</span>(**agg).<span class="fn">reset_index</span>()
+    summary = summary.<span class="fn">sort_values</span>(<span class="str">"wape_mean"</span>)
+    summary[<span class="str">"rank"</span>] = <span class="bi">range</span>(<span class="num">1</span>, <span class="bi">len</span>(summary) + <span class="num">1</span>)
+    <span class="kw">return</span> summary
+
+<span class="kw">def</span> <span class="fn">select_champion</span>(summary):
+    <span class="kw">return</span> summary.<span class="fn">sort_values</span>(<span class="str">"wape_mean"</span>).<span class="fn">iloc</span>[<span class="num">0</span>][<span class="str">"model"</span>]</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>Pourquoi le WAPE comme metrique de classement ?</strong>
+  </p>
+  <p>
+    Le WAPE (Weighted Absolute Percentage Error) pondere chaque erreur par le volume
+    du magasin. Un magasin qui vend 10 000 par jour a plus de poids qu'un magasin a 500.
+    C'est la metrique standard en supply chain car elle reflete l'impact business.
+    Un WAPE de 0.15 signifie : "en moyenne, nos predictions sont a 15% des ventes reelles,
+    pondere par le volume".
+  </p>
+  <p>
+    Le <code>std</code> mesure la stabilite du modele a travers les folds. Un modele avec
+    un bon WAPE moyen mais un grand ecart-type est moins fiable qu'un modele legerement
+    moins bon mais plus stable.
+  </p>
+</div>
+
+<h3 id="comp-mlflow">Logging MLflow et sorties</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/evaluation/comparison.py &mdash; compare_models()</div>
+  <pre><code><span class="kw">def</span> <span class="fn">compare_models</span>(results_path=<span class="bi">None</span>):
+    results = <span class="fn">load_backtesting_results</span>(results_path)
+    summary = <span class="fn">compute_summary</span>(results)
+    champion = <span class="fn">select_champion</span>(summary)
+
+    <span class="cm"># Sauvegarder le classement et le nom du champion</span>
+    summary.<span class="fn">to_csv</span>(RESULTS_DIR / <span class="str">"model_comparison.csv"</span>)
+    (RESULTS_DIR / <span class="str">"champion.txt"</span>).<span class="fn">write_text</span>(champion)
+
+    <span class="cm"># Logger dans MLflow</span>
+    mlflow.<span class="fn">set_experiment</span>(<span class="str">"demand-forecasting-phase4"</span>)
+    <span class="kw">with</span> mlflow.<span class="fn">start_run</span>(run_name=<span class="str">f"champion-</span>{champion}<span class="str">"</span>):
+        mlflow.<span class="fn">log_param</span>(<span class="str">"champion_model"</span>, champion)
+        <span class="kw">for</span> m <span class="kw">in</span> [<span class="str">"mae"</span>, <span class="str">"rmse"</span>, <span class="str">"wape"</span>, <span class="str">"bias"</span>]:
+            mlflow.<span class="fn">log_metric</span>(<span class="str">f"champion_</span>{m}<span class="str">_mean"</span>, row[<span class="str">f"</span>{m}<span class="str">_mean"</span>])
+    <span class="kw">return</span> summary, champion</code></pre>
+</div>
+
+<div class="explain">
+  <p>Execution :</p>
+  <pre><code>python -m src.evaluation.comparison</code></pre>
+  <p><strong>Sorties :</strong></p>
+  <ul>
+    <li><code>data/results/model_comparison.csv</code> &mdash; Tableau complet : rang, moyenne et ecart-type des 4 metriques pour chaque modele</li>
+    <li><code>data/results/champion.txt</code> &mdash; Nom du modele champion (ex. "lightgbm")</li>
+    <li>Run MLflow dans l'experience <code>demand-forecasting-phase4</code></li>
+  </ul>
+</div>
+
+
+<!-- REPLENISHMENT ENGINE (Phase 5) -->
+<h2 id="replenishment">Moteur de reapprovisionnement</h2>
+
+<p>
+  Le module <code>src/replenishment/engine.py</code> transforme les previsions de ventes
+  en recommandations concretes de reapprovisionnement : combien commander, quand,
+  et quels magasins sont en risque de rupture.
+</p>
+
+<h3 id="repl-safety">Stock de securite</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/replenishment/engine.py &mdash; compute_safety_stock</div>
+  <pre><code>SERVICE_LEVEL_Z = {<span class="num">0.90</span>: <span class="num">1.282</span>, <span class="num">0.95</span>: <span class="num">1.645</span>, <span class="num">0.99</span>: <span class="num">2.326</span>}
+
+<span class="kw">def</span> <span class="fn">compute_safety_stock</span>(demand_std, lead_time_days,
+                         service_level=<span class="num">0.95</span>, forecast_error_std=<span class="num">0.0</span>):
+    z = SERVICE_LEVEL_Z.<span class="fn">get</span>(service_level)
+    <span class="kw">if</span> z <span class="kw">is</span> <span class="bi">None</span>:
+        z = stats.norm.<span class="fn">ppf</span>(service_level)
+    total_std = np.<span class="fn">sqrt</span>(lead_time_days * demand_std**<span class="num">2</span> + forecast_error_std**<span class="num">2</span>)
+    <span class="kw">return</span> z * total_std</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>Formule :</strong> <code>SS = Z &times; &sigma; &times; &radic;LT</code>
+  </p>
+  <p>
+    Le stock de securite est un tampon qui absorbe la variabilite de la demande
+    pendant le delai de livraison. Le facteur Z depend du niveau de service :
+  </p>
+  <ul>
+    <li><strong>90%</strong> (Z=1.28) &mdash; Acceptable pour les produits a faible marge</li>
+    <li><strong>95%</strong> (Z=1.64) &mdash; Standard retail. "On accepte 1 rupture sur 20 cycles"</li>
+    <li><strong>99%</strong> (Z=2.33) &mdash; Produits critiques, marques premium</li>
+  </ul>
+  <p>
+    Le parametre <code>forecast_error_std</code> permet d'integrer l'incertitude du modele
+    de prevision. Plus le modele est imprecis, plus le stock de securite doit etre eleve.
+  </p>
+</div>
+
+<h3 id="repl-order">Point de commande et quantite</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/replenishment/engine.py</div>
+  <pre><code><span class="kw">def</span> <span class="fn">compute_reorder_point</span>(avg_daily_demand, lead_time_days, safety_stock):
+    <span class="kw">return</span> avg_daily_demand * lead_time_days + safety_stock
+
+<span class="kw">def</span> <span class="fn">compute_order_quantity</span>(avg_daily_demand, review_period_days,
+                          lead_time_days, safety_stock, current_stock):
+    target = avg_daily_demand * (lead_time_days + review_period_days) + safety_stock
+    <span class="kw">return</span> <span class="bi">max</span>(<span class="num">0</span>, target - current_stock)</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>Reorder Point (ROP)</strong> &mdash; Le seuil de stock en-dessous duquel on declenche
+    une commande. Il couvre la demande moyenne pendant le delai de livraison plus le stock
+    de securite. Si <code>stock_actuel &lt; ROP</code>, il faut commander.
+  </p>
+  <p>
+    <strong>Order Quantity (periodic review)</strong> &mdash; On utilise le modele "order-up-to-level" :
+    la quantite commandee remonte le stock au niveau cible = demande pendant
+    (delai + periode de revue) + stock de securite - stock actuel.
+    Avec une revue hebdomadaire et un delai de 3 jours, on commande pour couvrir 10 jours.
+  </p>
+</div>
+
+<h3 id="repl-risk">Risque de rupture de stock</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/replenishment/engine.py</div>
+  <pre><code><span class="kw">def</span> <span class="fn">compute_stockout_risk</span>(current_stock, avg_daily_demand,
+                          demand_std, horizon_days):
+    expected = avg_daily_demand * horizon_days
+    std = demand_std * np.<span class="fn">sqrt</span>(horizon_days)
+    <span class="kw">return</span> <span class="num">1.0</span> - stats.norm.<span class="fn">cdf</span>(current_stock, loc=expected, scale=std)
+
+<span class="cm"># Classification des alertes</span>
+df[<span class="str">"alert"</span>] = df[<span class="str">"stockout_risk"</span>].<span class="fn">apply</span>(
+    <span class="kw">lambda</span> r: <span class="str">"CRITICAL"</span> <span class="kw">if</span> r > <span class="num">0.5</span>
+    <span class="kw">else</span> <span class="str">"WARNING"</span> <span class="kw">if</span> r > <span class="num">0.2</span>
+    <span class="kw">else</span> <span class="str">"OK"</span>
+)</code></pre>
+</div>
+
+<div class="explain">
+  <p>
+    <strong>P(demande &gt; stock)</strong> &mdash; La probabilite que la demande cumulee pendant
+    le delai de livraison depasse le stock disponible. On suppose une distribution normale :
+    <code>D ~ N(&mu; &times; h, &sigma; &times; &radic;h)</code> ou <code>h</code> est l'horizon.
+  </p>
+  <p><strong>Seuils d'alerte :</strong></p>
+  <ul>
+    <li><span style="color:#DC2626; font-weight:600;">CRITICAL</span> (risque &gt; 50%) &mdash;
+    Rupture probable. Commander en urgence.</li>
+    <li><span style="color:#D97706; font-weight:600;">WARNING</span> (risque 20-50%) &mdash;
+    Stock bas. Planifier une commande.</li>
+    <li><span style="color:var(--phase-done); font-weight:600;">OK</span> (risque &lt; 20%) &mdash;
+    Stock suffisant.</li>
+  </ul>
+  <p>
+    Le champ <code>days_of_stock</code> indique combien de jours le stock actuel couvre
+    a la demande moyenne actuelle, ce qui donne une indication intuitive du niveau de stock.
+  </p>
+</div>
+
+<h3 id="repl-pipeline">Pipeline complet</h3>
+
+<div class="file-block">
+  <div class="file-path"><span class="dot"></span> src/replenishment/engine.py &mdash; __main__</div>
+  <pre><code>df = pd.<span class="fn">read_parquet</span>(FEATURES_DIR / <span class="str">"rossmann_features.parquet"</span>)
+df = df[(df[<span class="str">"open"</span>] == <span class="num">1</span>) &amp; (df[<span class="str">"sales"</span>] > <span class="num">0</span>)]
+
+<span class="cm"># Calculer les statistiques de demande sur les 30 derniers jours</span>
+store_demand = <span class="fn">build_store_demand_summary</span>(df, horizon_days=<span class="num">30</span>)
+
+<span class="cm"># Generer les recommandations</span>
+plan = <span class="fn">generate_replenishment_plan</span>(
+    store_demand,
+    lead_time_days=<span class="num">3</span>,
+    review_period_days=<span class="num">7</span>,
+    service_level=<span class="num">0.95</span>,
+)
+plan.<span class="fn">to_csv</span>(RESULTS_DIR / <span class="str">"replenishment_plan.csv"</span>)</code></pre>
+</div>
+
+<div class="explain">
+  <p>Execution :</p>
+  <pre><code>python -m src.replenishment.engine</code></pre>
+  <p>
+    Le pipeline calcule pour chaque magasin : demande moyenne et ecart-type sur les 30 derniers
+    jours, puis genere le stock de securite, point de commande, quantite a commander,
+    risque de rupture et alerte. Le resultat est sauvegarde dans
+    <code>data/results/replenishment_plan.csv</code>.
+  </p>
+  <p>
+    <strong>Note :</strong> en production, <code>current_stock</code> proviendrait du systeme
+    de gestion des stocks (ERP/WMS). Ici, la valeur par defaut est 0, ce qui simule
+    le cas "premiere commande" et produit un risque de rupture a 100% pour tous les magasins.
+  </p>
+</div>
+
+
 <!-- QUICKSTART -->
 <h2 id="quickstart">Demarrage rapide</h2>
 
@@ -2335,17 +2573,25 @@ python -m src.data.validation
 python -m src.features.engineering
 
 <span class="cm"># 10. Entrainer les 7 modeles + backtesting</span>
-python -m src.training.train</code></pre>
+python -m src.training.train
+
+<span class="cm"># 11. Comparer les modeles et selectionner le champion</span>
+python -m src.evaluation.comparison
+
+<span class="cm"># 12. Generer le plan de reapprovisionnement</span>
+python -m src.replenishment.engine</code></pre>
 </div>
 
 <div class="explain">
-  <p><strong>Apres ces 10 commandes :</strong></p>
+  <p><strong>Apres ces 12 commandes :</strong></p>
   <ul>
     <li>PostgreSQL tourne sur <code>localhost:5432</code> avec les donnees chargees</li>
-    <li>pgAdmin est accessible sur <code>localhost:8080</code></li>
-    <li>MLflow est accessible sur <code>localhost:5000</code> avec les runs enregistres</li>
-    <li>Le fichier <code>data/features/rossmann_features.parquet</code> contient ~30 features ML</li>
-    <li>Le fichier <code>data/results/backtesting_results.csv</code> contient les metriques des 7 modeles sur 3 folds</li>
+    <li>MLflow est accessible sur <code>localhost:5000</code> avec les runs de backtesting et du champion</li>
+    <li><code>data/features/rossmann_features.parquet</code> &mdash; ~30 features ML</li>
+    <li><code>data/results/backtesting_results.csv</code> &mdash; metriques des 7 modeles sur 3 folds</li>
+    <li><code>data/results/model_comparison.csv</code> &mdash; classement des modeles par WAPE</li>
+    <li><code>data/results/champion.txt</code> &mdash; nom du modele champion</li>
+    <li><code>data/results/replenishment_plan.csv</code> &mdash; recommandations de reapprovisionnement par magasin</li>
   </ul>
 </div>
 
@@ -2371,12 +2617,12 @@ python -m src.training.train</code></pre>
 <div class="roadmap-item">
   <span class="roadmap-phase">4</span>
   <span class="roadmap-title">Comparaison des modeles, selection du champion</span>
-  <span class="phase-badge future">A venir</span>
+  <span class="phase-badge done">Termine</span>
 </div>
 <div class="roadmap-item">
   <span class="roadmap-phase">5</span>
   <span class="roadmap-title">Moteur de reapprovisionnement (stock securite, risque rupture)</span>
-  <span class="phase-badge future">A venir</span>
+  <span class="phase-badge done">Termine</span>
 </div>
 <div class="roadmap-item">
   <span class="roadmap-phase">6</span>

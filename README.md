@@ -47,6 +47,12 @@ python -m src.features.engineering
 
 # Run training + backtesting (requires MLflow running)
 python -m src.training.train
+
+# Compare models and select champion
+python -m src.evaluation.comparison
+
+# Generate replenishment plan
+python -m src.replenishment.engine
 ```
 
 ## Project Structure
@@ -71,9 +77,12 @@ python -m src.training.train
 │   │   └── lstm.py         # LSTM (PyTorch, per-store sequences)
 │   ├── evaluation/
 │   │   ├── metrics.py      # MAE, RMSE, WAPE, forecast bias
-│   │   └── backtesting.py  # Walk-forward temporal cross-validation
-│   └── training/
-│       └── train.py        # Full pipeline: 7 models + MLflow logging
+│   │   ├── backtesting.py  # Walk-forward temporal cross-validation
+│   │   └── comparison.py   # Model ranking + champion selection
+│   ├── training/
+│   │   └── train.py        # Full pipeline: 7 models + MLflow logging
+│   └── replenishment/
+│       └── engine.py       # Safety stock, reorder point, stockout risk
 ├── notebooks/
 │   └── 01_exploration.ipynb  # EDA: distributions, STL, promo lift, outliers
 ├── api/                # FastAPI application (Phase 6)
@@ -134,6 +143,27 @@ All lag/rolling features use `shift(1)` to prevent data leakage. Store aggregate
 Metrics: **MAE**, **RMSE**, **WAPE** (Weighted Absolute Percentage Error), **Forecast Bias**.
 
 Results logged to MLflow and saved to `data/results/backtesting_results.csv`.
+
+## Champion Selection
+
+`python -m src.evaluation.comparison` ranks models by WAPE (lowest wins), saves:
+- `data/results/model_comparison.csv` — full ranking with mean/std per metric
+- `data/results/champion.txt` — name of the best model
+- MLflow run with champion metrics
+
+## Replenishment Engine
+
+`src/replenishment/engine.py` generates per-store replenishment recommendations:
+
+| Output | Formula |
+|--------|---------|
+| **Safety stock** | Z(service_level) x sigma_demand x sqrt(lead_time) |
+| **Reorder point** | avg_demand x lead_time + safety_stock |
+| **Order quantity** | demand_during_(LT + review) + safety_stock - current_stock |
+| **Stockout risk** | P(demand > stock) assuming Normal distribution |
+| **Alert** | CRITICAL (>50%), WARNING (>20%), OK |
+
+Default: service_level=95%, lead_time=3 days, review_period=7 days.
 
 ## Dataset
 
